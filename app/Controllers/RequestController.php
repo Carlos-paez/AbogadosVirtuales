@@ -25,22 +25,27 @@ class RequestController extends Controller
         $telefono = trim($input['telefono'] ?? '');
         $estado = trim($input['estado'] ?? '');
         $ciudad = trim($input['ciudad'] ?? '');
+        $rawAyuda = $input['tipo_ayuda'] ?? '';
+        $tipoAyuda = is_array($rawAyuda) ? implode(', ', $rawAyuda) : trim($rawAyuda);
+        $prioridad = trim($input['prioridad'] ?? 'media');
         $descripcion = trim($input['descripcion'] ?? '');
 
-        $errors = [];
-        if ($nombre === '') $errors[] = 'El nombre es obligatorio.';
-        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Email válido es obligatorio.';
-        if ($estado === '') $errors[] = 'El estado es obligatorio.';
-        if ($descripcion === '') $errors[] = 'La descripción es obligatoria.';
+        $fieldErrors = [];
+        if ($nombre === '') $fieldErrors['nombre'] = 'El nombre es obligatorio.';
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) $fieldErrors['email'] = 'Email válido es obligatorio.';
+        if ($estado === '') $fieldErrors['estado'] = 'El estado es obligatorio.';
+        if ($descripcion === '') $fieldErrors['descripcion'] = 'La descripción es obligatoria.';
 
-        if (!empty($errors)) {
-            $this->json(['success' => false, 'error' => implode(' ', $errors)], 400);
+        if (!empty($fieldErrors)) {
+            $this->json(['success' => false, 'fieldErrors' => $fieldErrors, 'error' => 'Corrige los campos marcados.'], 400);
             return;
         }
 
         $result = AffectedPerson::create([
             'nombre' => $nombre, 'email' => $email, 'telefono' => $telefono,
-            'estado' => $estado, 'ciudad' => $ciudad, 'descripcion' => $descripcion
+            'estado' => $estado, 'ciudad' => $ciudad,
+            'tipo_ayuda' => $tipoAyuda, 'prioridad' => $prioridad,
+            'descripcion' => $descripcion
         ]);
         $this->json($result);
     }
@@ -48,5 +53,15 @@ class RequestController extends Controller
     public function apiList(): void
     {
         $this->json(['success' => true, 'data' => AffectedPerson::all()]);
+    }
+
+    public function apiSearch(): void
+    {
+        $query = trim($_GET['q'] ?? '');
+        if ($query === '') {
+            $this->json(['success' => true, 'data' => []]);
+            return;
+        }
+        $this->json(['success' => true, 'data' => AffectedPerson::search($query)]);
     }
 }

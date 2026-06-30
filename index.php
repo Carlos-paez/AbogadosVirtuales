@@ -25,10 +25,17 @@ $router->post('/api/registro-abogado', 'LawyerController@apiRegister');
 $router->post('/api/registro-afectado', 'RequestController@apiRegister');
 $router->post('/api/asignar-caso', 'CrmController@apiAssign');
 $router->post('/api/cerrar-caso', 'CrmController@apiClose');
+$router->post('/api/reabrir-caso', 'CrmController@apiReopen');
+$router->post('/api/actualizar-caso', 'CrmController@apiUpdate');
 $router->post('/api/eliminar-caso', 'CrmController@apiDelete');
+$router->get('/api/obtener-caso', 'CrmController@apiGet');
 $router->get('/api/obtener-abogados', 'LawyerController@apiList');
 $router->get('/api/obtener-personas', 'RequestController@apiList');
 $router->get('/api/obtener-casos', 'CrmController@apiList');
 $router->get('/api/estadisticas', 'CrmController@apiStats');
+$router->get('/api/buscar-abogados', 'LawyerController@apiSearch');
+$router->get('/api/buscar-personas', 'RequestController@apiSearch');
+$router->get('/api/exportar-abogados', 'LawyerController@apiExport');
+$router->get('/api/exportar-casos', 'CrmController@apiExport');
 
 $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);

@@ -6,12 +6,12 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="nombre">Nombre completo *</label>
-                <input type="text" id="nombre" name="nombre" required>
+                <input type="text" id="nombre" name="nombre" required data-validate="required">
                 <span class="error-msg"></span>
             </div>
             <div class="form-group">
                 <label for="email">Correo electronico *</label>
-                <input type="email" id="email" name="email" required>
+                <input type="email" id="email" name="email" required data-validate="required email">
                 <span class="error-msg"></span>
             </div>
         </div>
@@ -22,56 +22,50 @@
             </div>
             <div class="form-group">
                 <label for="estado">Estado donde resides *</label>
-                <select id="estado" name="estado" required>
+                <select id="estado" name="estado" required data-validate="required">
                     <option value="">Seleccione un estado</option>
                 </select>
                 <span class="error-msg"></span>
             </div>
         </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="ciudad">Ciudad</label>
+                <input type="text" id="ciudad" name="ciudad">
+            </div>
+            <div class="form-group">
+                <label for="prioridad">Prioridad</label>
+                <select id="prioridad" name="prioridad">
+                    <option value="baja">Baja</option>
+                    <option value="media" selected>Media</option>
+                    <option value="alta">Alta</option>
+                    <option value="urgente">Urgente</option>
+                </select>
+            </div>
+        </div>
         <div class="form-group">
-            <label for="ciudad">Ciudad</label>
-            <input type="text" id="ciudad" name="ciudad">
+            <label>Tipo de ayuda legal que necesitas</label>
+            <div class="checkbox-group" id="tipoAyudaGroup">
+                <label class="checkbox-label"><input type="checkbox" name="tipo_ayuda" value="Asesoria migratoria"> Asesoria migratoria</label>
+                <label class="checkbox-label"><input type="checkbox" name="tipo_ayuda" value="Derechos humanos"> Derechos humanos</label>
+                <label class="checkbox-label"><input type="checkbox" name="tipo_ayuda" value="Derecho laboral"> Derecho laboral</label>
+                <label class="checkbox-label"><input type="checkbox" name="tipo_ayuda" value="Derecho penal"> Derecho penal</label>
+                <label class="checkbox-label"><input type="checkbox" name="tipo_ayuda" value="Derecho de familia"> Derecho de familia</label>
+                <label class="checkbox-label"><input type="checkbox" name="tipo_ayuda" value="Derecho civil"> Derecho civil</label>
+                <label class="checkbox-label"><input type="checkbox" name="tipo_ayuda" value="Otro"> Otro</label>
+            </div>
         </div>
         <div class="form-group">
             <label for="descripcion">Describe tu situacion legal *</label>
-            <textarea id="descripcion" name="descripcion" rows="5" required placeholder="Describe brevemente tu caso o situacion legal..."></textarea>
+            <textarea id="descripcion" name="descripcion" rows="5" required data-validate="required" placeholder="Describe brevemente tu caso o situacion legal..."></textarea>
             <span class="error-msg"></span>
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary btn-lg">Enviar Solicitud</button>
+            <button type="submit" class="btn btn-primary btn-lg" id="btnSolicitud">
+                <span class="btn-text">Enviar Solicitud</span>
+                <span class="spinner" style="display:none;"></span>
+            </button>
         </div>
         <div id="formMessage" class="form-message" style="display:none;"></div>
     </form>
 </div>
-<script>
-document.getElementById("formSolicitud")?.addEventListener("submit", async function(e) {
-    e.preventDefault();
-    const form = e.target;
-    const msg = document.getElementById("formMessage");
-    const btn = form.querySelector("button[type=submit]");
-    btn.disabled = true; btn.textContent = "Enviando...";
-    try {
-        const resp = await fetch("/api/registro-afectado", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(Object.fromEntries(new FormData(form)))
-        });
-        const data = await resp.json();
-        if (data.success) {
-            msg.className = "form-message success";
-            msg.textContent = "Solicitud enviada con exito! Un abogado te contactara pronto.";
-            msg.style.display = "block";
-            form.reset();
-        } else {
-            msg.className = "form-message error";
-            msg.textContent = data.error || "Error al enviar la solicitud.";
-            msg.style.display = "block";
-        }
-    } catch (err) {
-        msg.className = "form-message error";
-        msg.textContent = "Error de conexion.";
-        msg.style.display = "block";
-    }
-    btn.disabled = false; btn.textContent = "Enviar Solicitud";
-});
-</script>
