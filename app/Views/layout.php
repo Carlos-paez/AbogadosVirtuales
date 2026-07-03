@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($title ?? 'Abogados por Venezuela') ?> - Red de Apoyo Legal</title>
+    <title><?= htmlspecialchars($title ?? 'Red de Apoyo Legal') ?> - Red de Apoyo Legal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="<?= $basePath ?>/assets/css/style.css">
@@ -11,14 +11,24 @@
 <body>
     <nav class="navbar">
         <div class="container">
-            <a href="<?= $basePath ?>/" class="nav-brand">Abogados por Venezuela</a>
+            <a href="<?= $basePath ?>/" class="nav-brand">Red de Apoyo Legal</a>
             <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
             <ul class="nav-menu" id="navMenu">
                 <li><a href="<?= $basePath ?>/info">Informacion</a></li>
                 <li><a href="<?= $basePath ?>/registro">Registro Abogados</a></li>
-                <li><a href="<?= $basePath ?>/reportes">Reportes</a></li>
                 <li><a href="<?= $basePath ?>/solicitudes">Solicitar Ayuda</a></li>
+                <?php if (!empty($isLoggedIn)): ?>
+                <li><a href="<?= $basePath ?>/reportes">Reportes</a></li>
                 <li><a href="<?= $basePath ?>/crm">CRM</a></li>
+                <?php endif; ?>
+            </ul>
+            <ul class="nav-auth">
+                <?php if (!empty($isLoggedIn)): ?>
+                <li><span class="nav-user"><?= htmlspecialchars($currentUser['nombre'] ?? '') ?></span></li>
+                <li><a href="<?= $basePath ?>/logout" class="btn btn-sm btn-outline">Cerrar Sesion</a></li>
+                <?php else: ?>
+                <li><a href="<?= $basePath ?>/login" class="btn btn-sm btn-primary">Ingresar</a></li>
+                <?php endif; ?>
             </ul>
         </div>
     </nav>
@@ -29,10 +39,12 @@
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; <?= date('Y') ?> Red de Apoyo Legal - Abogados por Venezuela. Todos los derechos reservados.</p>
+            <p>&copy; <?= date('Y') ?> Red de Apoyo Legal. Todos los derechos reservados.</p>
+            <p class="credit">Creada por Carlos Páez — Estudiante de la UPTAEB — con el apoyo de herramientas de IA, con la intención de aportar ayuda en momentos difíciles.</p>
         </div>
     </footer>
 
+    <script>var BASE_PATH = <?= json_encode($basePath) ?>;</script>
     <script src="<?= $basePath ?>/assets/js/app.js"></script>
 </body>
 </html>

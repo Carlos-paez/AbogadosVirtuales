@@ -1,14 +1,14 @@
-# Apoyo Legal a Afectados por la Situación de Venezuela
+# Red de Apoyo Legal para Afectados por la Crisis en Venezuela
 
 ## ¿Quiénes somos?
 
-Somos una red de abogados voluntarios comprometidos con brindar apoyo legal gratuito a las personas afectadas por la crisis humanitaria, política y social en Venezuela. Nuestro objetivo es conectar a quienes necesitan asistencia legal con profesionales del derecho dispuestos a ayudar.
+Somos una red de abogados voluntarios comprometidos con brindar apoyo legal gratuito a las personas afectadas por la crisis humanitaria en Venezuela. Nuestro objetivo es conectar a quienes necesitan asistencia legal con profesionales del derecho dispuestos a ayudar.
 
 ## Contexto
 
-La situación en Venezuela ha generado una crisis humanitaria sin precedentes. Millones de venezolanos han tenido que abandonar el país, y quienes permanecen enfrentan desafíos significativos en áreas como:
+La situación en Venezuela ha generado una crisis humanitaria que ha llevado a millones de personas a buscar soluciones legales en áreas como:
 
-- **Derechos humanos**: Violaciones sistemáticas, detenciones arbitrarias, persecución política.
+- **Derechos humanos**: Violaciones sistemáticas, detenciones arbitrarias.
 - **Derecho migratorio**: Regularización de estatus en países de acogida, solicitudes de refugio y asilo.
 - **Derecho laboral**: Despidos injustificados, violaciones de derechos laborales.
 - **Derecho de familia**: Separación familiar, custodia de menores, reunificación.
@@ -42,7 +42,3 @@ Amazonas, Anzoátegui, Apure, Aragua, Barinas, Bolívar, Carabobo, Cojedes, Delt
 ## Contáctanos
 
 Si eres abogado y deseas unirte a esta causa, completa el formulario de registro. Si necesitas ayuda legal, completa el formulario de solicitud. Juntos podemos marcar la diferencia.
-
----
-
-*"La justicia es el pan del pueblo; siempre está hambriento de ella."*

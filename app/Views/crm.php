@@ -7,6 +7,10 @@
         <div class="stat-card"><h3>Total Solicitudes</h3><p id="statPersonas">0</p></div>
         <div class="stat-card"><h3>Casos Abiertos</h3><p id="statAbiertos">0</p></div>
         <div class="stat-card"><h3>Casos Cerrados</h3><p id="statCerrados">0</p></div>
+        <div class="stat-card" id="statPorEstado" style="display:none;">
+            <h3>Por Estado</h3>
+            <div id="estadoChart" class="mini-chart"></div>
+        </div>
         <div class="stat-card stat-card-wide" id="statBarContainer" style="display:none;">
             <h3>Progreso General</h3>
             <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%;">0%</div></div>
@@ -18,6 +22,14 @@
         <div class="stat-card stat-card-wide" id="statTopAbogados" style="display:none;">
             <h3>Top Abogados por Casos</h3>
             <div id="topAbogadosList"></div>
+        </div>
+        <div class="stat-card stat-card-wide" id="statCasosAntiguos" style="display:none;">
+            <h3>Casos con Mayor Antigüedad</h3>
+            <div id="casosAntiguosList"></div>
+        </div>
+        <div class="stat-card stat-card-wide" id="statActividadReciente" style="display:none;">
+            <h3>Actividad Reciente</h3>
+            <div id="actividadRecienteList" class="activity-feed"></div>
         </div>
     </div>
 
@@ -84,8 +96,11 @@
                 <label for="filterCasosEstado">Estado</label>
                 <select id="filterCasosEstado">
                     <option value="">Todos</option>
-                    <option value="abierto">Abiertos</option>
-                    <option value="cerrado">Cerrados</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="en_proceso">En Proceso</option>
+                    <option value="derivado">Derivado</option>
+                    <option value="resuelto">Resuelto</option>
+                    <option value="cerrado">Cerrado</option>
                 </select>
             </div>
             <div class="form-group">
@@ -117,8 +132,11 @@
                 <label for="reportFilterEstado">Estado</label>
                 <select id="reportFilterEstado">
                     <option value="">Todos</option>
-                    <option value="abierto">Abiertos</option>
-                    <option value="cerrado">Cerrados</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="en_proceso">En Proceso</option>
+                    <option value="derivado">Derivado</option>
+                    <option value="resuelto">Resuelto</option>
+                    <option value="cerrado">Cerrado</option>
                 </select>
             </div>
             <div class="form-group">
@@ -200,6 +218,34 @@
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 <button type="button" class="btn btn-secondary" id="btnCancelEdit">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalChangeStatus" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="modal-close" id="modalStatusCloseBtn">&times;</span>
+        <h3>Cambiar Estado del Caso</h3>
+        <form id="formChangeStatus">
+            <input type="hidden" id="changeStatusCaseId" value="">
+            <div class="form-group">
+                <label for="changeStatusSelect">Nuevo Estado</label>
+                <select id="changeStatusSelect">
+                    <option value="pendiente">Pendiente</option>
+                    <option value="en_proceso">En Proceso</option>
+                    <option value="derivado">Derivado</option>
+                    <option value="resuelto">Resuelto</option>
+                    <option value="cerrado">Cerrado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="changeStatusObservacion">Observacion (opcional)</label>
+                <textarea id="changeStatusObservacion" rows="2" placeholder="Motivo del cambio..."></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Cambiar Estado</button>
+                <button type="button" class="btn btn-secondary" id="btnCancelStatus">Cancelar</button>
             </div>
         </form>
     </div>

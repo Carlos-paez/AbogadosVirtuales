@@ -63,6 +63,7 @@ class LawyerController extends Controller
 
     public function apiList(): void
     {
+        $this->requireAuth();
         $estado = $_GET['estado'] ?? null;
         $jurisdiccion = $_GET['jurisdiccion'] ?? null;
         $this->json(['success' => true, 'data' => Lawyer::all($estado, $jurisdiccion)]);
@@ -70,6 +71,7 @@ class LawyerController extends Controller
 
     public function apiSearch(): void
     {
+        $this->requireAuth();
         $query = trim($_GET['q'] ?? '');
         if ($query === '') {
             $this->json(['success' => true, 'data' => []]);
@@ -80,6 +82,7 @@ class LawyerController extends Controller
 
     public function apiExport(): void
     {
+        $this->requireAuth();
         $estado = $_GET['estado'] ?? null;
         $jurisdiccion = $_GET['jurisdiccion'] ?? null;
         $csv = Lawyer::exportCsv($estado, $jurisdiccion);

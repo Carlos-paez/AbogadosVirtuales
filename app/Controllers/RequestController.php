@@ -52,11 +52,13 @@ class RequestController extends Controller
 
     public function apiList(): void
     {
+        $this->requireAuth();
         $this->json(['success' => true, 'data' => AffectedPerson::all()]);
     }
 
     public function apiSearch(): void
     {
+        $this->requireAuth();
         $query = trim($_GET['q'] ?? '');
         if ($query === '') {
             $this->json(['success' => true, 'data' => []]);

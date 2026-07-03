@@ -10,16 +10,13 @@ class CrmController extends Controller
 {
     public function index(): void
     {
+        $this->requireAuth();
         $this->view('crm', ['title' => 'CRM - Gestión de Casos']);
     }
 
     public function apiAssign(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'error' => 'Método no permitido'], 405);
-            return;
-        }
-
+        $this->requireAuth();
         $input = $this->getJsonInput();
         $person_id = (int)($input['person_id'] ?? 0);
         $lawyer_id = (int)($input['lawyer_id'] ?? 0);
@@ -49,6 +46,7 @@ class CrmController extends Controller
 
     public function apiGet(): void
     {
+        $this->requireAuth();
         $id = (int)($_GET['id'] ?? 0);
         if (!$id) {
             $this->json(['success' => false, 'error' => 'ID no válido.'], 400);
@@ -59,16 +57,13 @@ class CrmController extends Controller
             $this->json(['success' => false, 'error' => 'Caso no encontrado.'], 404);
             return;
         }
+        $case['actividades'] = LegalCase::getActivities($id);
         $this->json(['success' => true, 'data' => $case]);
     }
 
     public function apiUpdate(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'error' => 'Método no permitido'], 405);
-            return;
-        }
-
+        $this->requireAuth();
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
         if (!$id) {
@@ -92,13 +87,57 @@ class CrmController extends Controller
         $this->json(['success' => true, 'message' => 'Caso actualizado.']);
     }
 
-    public function apiClose(): void
+    public function apiChangeStatus(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'error' => 'Método no permitido'], 405);
+        $this->requireAuth();
+        $input = $this->getJsonInput();
+        $id = (int)($input['id'] ?? 0);
+        $newStatus = trim($input['estado'] ?? '');
+        $observacion = trim($input['observacion'] ?? '');
+
+        if (!$id || !$newStatus) {
+            $this->json(['success' => false, 'error' => 'ID y estado requeridos.'], 400);
             return;
         }
 
+        $ok = LegalCase::updateStatus($id, $newStatus, $observacion ?: null);
+        if ($ok) {
+            $this->json(['success' => true, 'message' => "Estado cambiado a '$newStatus'."]);
+        } else {
+            $this->json(['success' => false, 'error' => 'No se pudo cambiar el estado. Verifique que el nuevo estado sea válido.'], 400);
+        }
+    }
+
+    public function apiAddComment(): void
+    {
+        $this->requireAuth();
+        $input = $this->getJsonInput();
+        $id = (int)($input['id'] ?? 0);
+        $comment = trim($input['comentario'] ?? '');
+
+        if (!$id || !$comment) {
+            $this->json(['success' => false, 'error' => 'ID y comentario requeridos.'], 400);
+            return;
+        }
+
+        LegalCase::addComment($id, $comment);
+        $this->json(['success' => true, 'message' => 'Comentario agregado.']);
+    }
+
+    public function apiActivities(): void
+    {
+        $this->requireAuth();
+        $id = (int)($_GET['id'] ?? 0);
+        if (!$id) {
+            $this->json(['success' => false, 'error' => 'ID no válido.'], 400);
+            return;
+        }
+        $this->json(['success' => true, 'data' => LegalCase::getActivities($id)]);
+    }
+
+    public function apiClose(): void
+    {
+        $this->requireAuth();
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
         $observaciones = trim($input['observaciones'] ?? '');
@@ -114,11 +153,7 @@ class CrmController extends Controller
 
     public function apiReopen(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'error' => 'Método no permitido'], 405);
-            return;
-        }
-
+        $this->requireAuth();
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
 
@@ -137,11 +172,7 @@ class CrmController extends Controller
 
     public function apiDelete(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'error' => 'Método no permitido'], 405);
-            return;
-        }
-
+        $this->requireAuth();
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
 
@@ -156,6 +187,7 @@ class CrmController extends Controller
 
     public function apiList(): void
     {
+        $this->requireAuth();
         $estado = $_GET['estado'] ?? null;
         $search = $_GET['q'] ?? null;
         $prioridad = $_GET['prioridad'] ?? null;
@@ -164,11 +196,13 @@ class CrmController extends Controller
 
     public function apiStats(): void
     {
+        $this->requireAuth();
         $this->json(['success' => true, 'data' => LegalCase::stats()]);
     }
 
     public function apiExport(): void
     {
+        $this->requireAuth();
         $estado = $_GET['estado'] ?? null;
         $prioridad = $_GET['prioridad'] ?? null;
         $csv = LegalCase::exportCsv($estado, $prioridad);

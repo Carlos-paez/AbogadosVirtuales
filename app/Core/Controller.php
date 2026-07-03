@@ -6,10 +6,14 @@ abstract class Controller
 {
     protected function view(string $name, array $data = []): void
     {
+        Auth::init();
+        $data['isLoggedIn'] = Auth::isLoggedIn();
+        $data['currentUser'] = Auth::user();
+
         $router = $GLOBALS['router'] ?? null;
         $basePath = $router ? $router->getBasePath() : '';
 
-        $title = $data['title'] ?? 'Abogados por Venezuela';
+        $title = $data['title'] ?? 'Red de Apoyo Legal';
         $content = '';
 
         $viewPath = __DIR__ . '/../Views/' . $name . '.php';
@@ -33,5 +37,21 @@ abstract class Controller
     protected function getJsonInput(): array
     {
         return json_decode(file_get_contents('php://input'), true) ?? [];
+    }
+
+    protected function requireAuth(): void
+    {
+        Auth::init();
+        if (!Auth::isLoggedIn()) {
+            $uri = $_SERVER['REQUEST_URI'] ?? '';
+            if (str_contains($uri, '/api/')) {
+                $this->json(['success' => false, 'error' => 'No autorizado. Debe iniciar sesión.'], 401);
+            } else {
+                $router = $GLOBALS['router'] ?? null;
+                $basePath = $router ? $router->getBasePath() : '';
+                header('Location: ' . $basePath . '/login');
+            }
+            exit;
+        }
     }
 }

@@ -17,9 +17,13 @@ $GLOBALS['router'] = $router;
 $router->get('/', 'HomeController@info');
 $router->get('/info', 'HomeController@info');
 $router->get('/registro', 'LawyerController@register');
-$router->get('/reportes', 'ReportController@index');
 $router->get('/solicitudes', 'RequestController@form');
+$router->get('/reportes', 'ReportController@index');
 $router->get('/crm', 'CrmController@index');
+
+$router->get('/login', 'AuthController@loginForm');
+$router->post('/api/login', 'AuthController@login');
+$router->get('/logout', 'AuthController@logout');
 
 $router->post('/api/registro-abogado', 'LawyerController@apiRegister');
 $router->post('/api/registro-afectado', 'RequestController@apiRegister');
@@ -37,5 +41,8 @@ $router->get('/api/buscar-abogados', 'LawyerController@apiSearch');
 $router->get('/api/buscar-personas', 'RequestController@apiSearch');
 $router->get('/api/exportar-abogados', 'LawyerController@apiExport');
 $router->get('/api/exportar-casos', 'CrmController@apiExport');
+$router->post('/api/cambio-estado', 'CrmController@apiChangeStatus');
+$router->post('/api/agregar-comentario', 'CrmController@apiAddComment');
+$router->get('/api/actividades', 'CrmController@apiActivities');
 
 $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);

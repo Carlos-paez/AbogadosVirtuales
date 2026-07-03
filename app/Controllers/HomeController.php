@@ -27,6 +27,6 @@ class HomeController extends Controller
         $html = preg_replace('/<\/ol>\s*<\/p>/', '</ol>', $html);
         $html = preg_replace('/<p>\s*<\/p>/', '', $html);
 
-        $this->view('info', ['title' => 'Información de la Causa', 'infoHtml' => $html]);
+        $this->view('info', ['title' => 'Información - Crisis en Venezuela', 'infoHtml' => $html]);
     }
 }

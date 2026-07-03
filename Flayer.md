@@ -1,19 +1,19 @@
 # Mayela Cadevilla  
 ## Abogado Especialista
 
-# BUSCO COLEGAS: VENEZOLANOS
+# BUSCO COLEGAS
 
-**Unámonos para poner nuestro conocimiento jurídico al servicio de nuestra gente en este momento difícil.**
+**Unámonos para poner nuestro conocimiento jurídico al servicio de quienes más lo necesitan.**
 
 ---
 
-## RED VIRTUAL DE ABOGADOS VENEZOLANOS POR VENEZUELA
+## RED DE APOYO LEGAL
 
 **Orientación jurídica gratuita, coordinación con organizaciones y apoyo pro bono cuando sea posible.**
 
-**Por el Deeeche.  
+**Por el Derecho.  
 Por nuestra gente.  
-Por Venezuela.**
+Por la justicia.**
 
 ---
 
@@ -23,7 +23,7 @@ Por Venezuela.**
 Respuestas claras para quienes más lo necesitan.
 
 ### Coordinación con organizaciones
-Trabajamos junto a ONG, fundaciones y grupos comunitarios para brindar apoyo legal.
+Trabajamos junto a organizaciones y grupos comunitarios para brindar apoyo legal.
 
 ### Apoyo pro bono
 Conectamos casos con colegas voluntarios cuando es posible.
@@ -31,10 +31,3 @@ Conectamos casos con colegas voluntarios cuando es posible.
 ---
 
 **Tu conocimiento puede hacer una gran diferencia.**
-
----
-
-## Mayela Cadevilla
-**Abogado especialista.**  
-**Teléfono:** 04125163884  
-**Venezuela.**

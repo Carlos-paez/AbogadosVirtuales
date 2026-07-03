@@ -69,6 +69,27 @@ abstract class Model
                 FOREIGN KEY (lawyer_id) REFERENCES lawyers(id),
                 FOREIGN KEY (person_id) REFERENCES affected_people(id)
             );
+
+            CREATE TABLE IF NOT EXISTS case_activities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id INTEGER NOT NULL,
+                user_name TEXT,
+                action TEXT NOT NULL,
+                field TEXT,
+                old_value TEXT,
+                new_value TEXT,
+                description TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (case_id) REFERENCES cases(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                nombre TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
         ");
 
         self::migrate();

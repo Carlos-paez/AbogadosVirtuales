@@ -1,6 +1,6 @@
 <div class="form-page">
     <h1>Solicitar Apoyo Legal</h1>
-    <p class="lead">Si eres una persona afectada por la situacion en Venezuela y necesitas asistencia legal, completa este formulario y un abogado voluntario te contactara.</p>
+    <p class="lead">Si necesitas asistencia legal, completa este formulario y un abogado voluntario te contactara.</p>
 
     <form id="formSolicitud" class="app-form" novalidate>
         <div class="form-row">

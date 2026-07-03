@@ -1,7 +1,7 @@
 ;(function() {
     'use strict';
 
-    var basePath = (document.querySelector('base') || {}).href || '/';
+    var basePath = (typeof BASE_PATH !== 'undefined') ? BASE_PATH : '/';
 
     /* ── Nav toggle ── */
     var navToggle = document.getElementById('navToggle');
@@ -10,10 +10,14 @@
         navToggle.addEventListener('click', function(e) {
             e.stopPropagation();
             navMenu.classList.toggle('show');
+            var navAuth = document.querySelector('.nav-auth');
+            if (navAuth) navAuth.classList.toggle('show');
         });
         document.addEventListener('click', function(e) {
             if (!navToggle.contains(e.target) && !navMenu.contains(e.target)) {
                 navMenu.classList.remove('show');
+                var navAuth = document.querySelector('.nav-auth');
+                if (navAuth) navAuth.classList.remove('show');
             }
         });
     }
@@ -28,8 +32,8 @@
     /* ── Static data ── */
     var estados = [
         'Amazonas', 'Anzoategui', 'Apure', 'Aragua', 'Barinas', 'Bolivar', 'Carabobo', 'Cojedes',
-        'Delta Amacuro', 'Distrito Capital', 'Falcon', 'Guarico', 'Lara', 'Merida', 'Miranda',
-        'Monagas', 'Nueva Esparta', 'Portuguesa', 'Sucre', 'Tachira', 'Trujillo', 'La Guaira', 'Yaracuy', 'Zulia'
+        'Delta Amacuro', 'Distrito Capital', 'Falcon', 'Guarico', 'La Guaira', 'Lara', 'Merida', 'Miranda',
+        'Monagas', 'Nueva Esparta', 'Portuguesa', 'Sucre', 'Tachira', 'Trujillo', 'Yaracuy', 'Zulia'
     ];
     var jurisdicciones = [
         'Penal', 'Civil', 'Laboral', 'Administrativo', 'Constitucional',
@@ -385,6 +389,51 @@
     })();
 
     /* ================================================================
+       LOGIN PAGE
+       ================================================================ */
+    (function() {
+        var form = document.getElementById('formLogin');
+        if (!form) return;
+        attachValidation(form);
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var valid = true;
+            form.querySelectorAll('[data-validate]').forEach(function(f) { if (!validateField(f)) valid = false; });
+            form.querySelectorAll('[required]').forEach(function(f) {
+                if (!f.hasAttribute('data-validate')) {
+                    var err = f.closest('.form-group').querySelector('.error-msg');
+                    if (!f.value.trim()) {
+                        if (err) err.textContent = 'Este campo es obligatorio.';
+                        f.style.borderColor = '#ef4444';
+                        valid = false;
+                    }
+                }
+            });
+            if (!valid) return;
+
+            var btn = document.getElementById('btnLogin');
+            var msg = document.getElementById('formMessage');
+            showLoading(btn);
+            msg.style.display = 'none';
+
+            api('POST', basePath + 'api/login', {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            }, function(err, res) {
+                hideLoading(btn);
+                if (res && res.success) {
+                    window.location.href = basePath + 'crm';
+                } else {
+                    var m = res ? res.error : 'Error de conexion.';
+                    showFormMsg(msg, m, 'error');
+                    showToast(m, 'error');
+                }
+            });
+        });
+    })();
+
+    /* ================================================================
        REPORTES PAGE
        ================================================================ */
     (function() {
@@ -471,14 +520,8 @@
         });
         if (btnExport) btnExport.addEventListener('click', function() {
             showToast('Exportando CSV...', 'info');
-            apiGet(basePath + 'api/exportar-abogados' + buildQuery(), function(err, res) {
-                if (res && res.success && res.data) {
-                    downloadCSV(res.data, 'abogados');
-                    showToast('CSV exportado exitosamente.', 'success');
-                } else {
-                    showToast('Error al exportar CSV.', 'error');
-                }
-            });
+            window.open(basePath + 'api/exportar-abogados' + buildQuery(), '_blank');
+            setTimeout(function() { showToast('Descarga iniciada.', 'success'); }, 500);
         });
         if (searchInput) {
             var debounceTimer;
@@ -510,8 +553,19 @@
         var prioridadChart = document.getElementById('prioridadChart');
         var statTopAbogados = document.getElementById('statTopAbogados');
         var topAbogadosList = document.getElementById('topAbogadosList');
+        var statPorEstado = document.getElementById('statPorEstado');
+        var estadoChart = document.getElementById('estadoChart');
+        var statCasosAntiguos = document.getElementById('statCasosAntiguos');
+        var casosAntiguosList = document.getElementById('casosAntiguosList');
+        var statActividadReciente = document.getElementById('statActividadReciente');
+        var actividadRecienteList = document.getElementById('actividadRecienteList');
 
         var editAbogadoSelect = document.getElementById('editAbogado');
+
+        var statusLabels = { pendiente: 'Pendiente', en_proceso: 'En Proceso', derivado: 'Derivado', resuelto: 'Resuelto', cerrado: 'Cerrado' };
+        var statusColors = { pendiente: '#94a3b8', en_proceso: '#3b82f6', derivado: '#8b5cf6', resuelto: '#10b981', cerrado: '#6b7280' };
+        var statusBadges = { pendiente: 'badge-secondary', en_proceso: 'badge-info', derivado: 'badge-warning', resuelto: 'badge-success', cerrado: 'badge-success' };
+        var prioridadBadges = { urgente: 'badge-warning', alta: 'badge-warning', media: 'badge-info', baja: 'badge-secondary' };
 
         /* Tabs */
         document.querySelectorAll('.tab-btn').forEach(function(btn) {
@@ -543,33 +597,32 @@
         }
 
         /* ── Stats ── */
-        var statCache = null;
         function loadStats() {
             apiGet(basePath + 'api/estadisticas', function(err, res) {
                 if (res && res.success) {
                     var s = res.data || {};
-                    statCache = s;
                     animateCounter(statAbogados, s.total_abogados || 0, 500);
                     animateCounter(statPersonas, s.total_personas || 0, 500);
                     animateCounter(statAbiertos, s.casos_abiertos || 0, 500);
                     animateCounter(statCerrados, s.casos_cerrados || 0, 500);
 
-                    var total = (s.casos_abiertos || 0) + (s.casos_cerrados || 0);
+                    var total = s.total_casos || 0;
                     if (statBarContainer && total > 0) {
                         statBarContainer.style.display = 'block';
-                        var pct = Math.round((s.casos_cerrados / total) * 100);
+                        var pct = total > 0 ? Math.round((s.casos_cerrados / total) * 100) : 0;
                         if (progressFill) {
                             setTimeout(function() {
                                 progressFill.style.width = pct + '%';
                                 progressFill.textContent = pct + '% Completado';
                             }, 200);
                         }
-                    } else if (statBarContainer) {
-                        statBarContainer.style.display = 'none';
-                    }
+                    } else if (statBarContainer) statBarContainer.style.display = 'none';
 
                     renderPrioridadChart(s.por_prioridad);
                     renderTopAbogados(s.por_abogado);
+                    renderEstadoChart(s.por_estado);
+                    renderCasosAntiguos(s.casos_antiguos);
+                    renderActividadReciente(s.actividad_reciente);
                 }
             });
         }
@@ -599,6 +652,28 @@
             prioridadChart.innerHTML = html;
         }
 
+        function renderEstadoChart(porEstado) {
+            if (!estadoChart || !porEstado || !porEstado.length) {
+                if (statPorEstado) statPorEstado.style.display = 'none';
+                return;
+            }
+            if (statPorEstado) statPorEstado.style.display = 'block';
+            var maxVal = 1;
+            porEstado.forEach(function(e) { if (e.total > maxVal) maxVal = parseInt(e.total, 10); });
+            var html = '';
+            porEstado.forEach(function(e) {
+                var val = parseInt(e.total, 10);
+                var pct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+                var color = statusColors[e.estado] || '#94a3b8';
+                var label = statusLabels[e.estado] || e.estado;
+                html += '<div class="chart-bar-item"><div class="chart-bar" style="height:60px;">' +
+                    '<div class="chart-bar-fill" style="height:' + pct + '%;background:' + color + ';"></div></div>' +
+                    '<div class="chart-bar-value">' + val + '</div>' +
+                    '<div class="chart-bar-label">' + label + '</div></div>';
+            });
+            estadoChart.innerHTML = html;
+        }
+
         function renderTopAbogados(porAbogado) {
             if (!topAbogadosList || !porAbogado || !porAbogado.length) {
                 if (statTopAbogados) statTopAbogados.style.display = 'none';
@@ -612,10 +687,47 @@
                 var total = parseInt(a.total, 10);
                 var pct = maxVal > 0 ? (total / maxVal) * 100 : 0;
                 html += '<div class="top-abogado-row"><span class="top-abogado-name">' + esc(a.nombre || 'Sin nombre') + '</span>' +
-                    '<span class="top-abogado-count">' + total + '</span>' +
+                    '<span class="top-abogado-count">' + total + ' (' + (parseInt(a.abiertos, 10) || 0) + ' abiertos)</span>' +
                     '<div class="top-abogado-bar"><div class="top-abogado-fill" style="width:' + pct + '%;"></div></div></div>';
             });
             topAbogadosList.innerHTML = html;
+        }
+
+        function renderCasosAntiguos(casos) {
+            if (!casosAntiguosList || !casos || !casos.length) {
+                if (statCasosAntiguos) statCasosAntiguos.style.display = 'none';
+                return;
+            }
+            if (statCasosAntiguos) statCasosAntiguos.style.display = 'block';
+            var html = '';
+            casos.forEach(function(c) {
+                var dias = parseInt(c.dias_abierto, 10) || 0;
+                var urgentClass = dias >= 30 ? 'urgent-case' : (dias >= 15 ? 'warning-case' : '');
+                html += '<div class="caso-antiguo ' + urgentClass + '">' +
+                    '<span class="caso-antiguo-id">#' + c.id + '</span> ' +
+                    '<span class="caso-antiguo-titulo">' + esc(c.titulo || 'Sin titulo') + '</span> ' +
+                    '<span class="badge ' + (statusBadges[c.estado] || 'badge-info') + '">' + esc(statusLabels[c.estado] || c.estado) + '</span> ' +
+                    '<span class="caso-antiguo-dias">' + dias + ' días</span>' +
+                    '<span class="caso-antiguo-abogado">' + esc(c.abogado_nombre || '') + '</span></div>';
+            });
+            casosAntiguosList.innerHTML = html;
+        }
+
+        function renderActividadReciente(actividades) {
+            if (!actividadRecienteList || !actividades || !actividades.length) {
+                if (statActividadReciente) statActividadReciente.style.display = 'none';
+                return;
+            }
+            if (statActividadReciente) statActividadReciente.style.display = 'block';
+            var html = '';
+            actividades.forEach(function(a) {
+                var icon = a.action === 'comentario' ? '&#128172;' : (a.action === 'cambio_estado' ? '&#128279;' : (a.action === 'creado' ? '&#10003;' : '&#9998;'));
+                html += '<div class="activity-item"><span class="activity-icon">' + icon + '</span>' +
+                    '<span class="activity-text"><strong>' + esc(a.user_name || '') + '</strong> ' + esc(a.description) + '</span>' +
+                    (a.case_titulo ? '<span class="activity-case">' + esc(a.case_titulo) + '</span>' : '') +
+                    '<span class="activity-time">' + a.created_at + '</span></div>';
+            });
+            actividadRecienteList.innerHTML = html;
         }
 
         /* ── Assign form ── */
@@ -715,27 +827,31 @@
                 }
                 var html = '<div style="overflow-x:auto;"><table class="crm-table"><thead><tr>' +
                     '<th>ID</th><th>Titulo</th><th>Persona</th><th>Abogado</th>' +
-                    '<th>Prioridad</th><th>Estado</th><th>Creado</th><th>Acciones</th>' +
+                    '<th>Prioridad</th><th>Estado</th><th>Dias</th><th>Acciones</th>' +
                     '</tr></thead><tbody>';
                 data.forEach(function(c) {
-                    var prioridadBadge = c.prioridad === 'urgente' ? 'badge-warning' : (c.prioridad === 'alta' ? 'badge-warning' : 'badge-info');
-                    var estadoBadge = c.estado === 'cerrado' ? 'badge-success' : 'badge-info';
-                    html += '<tr>' +
+                    var pb = prioridadBadges[c.prioridad] || 'badge-info';
+                    var eb = statusBadges[c.estado] || 'badge-info';
+                    var el = statusLabels[c.estado] || c.estado;
+                    var dias = parseInt(c.dias_abierto, 10) || 0;
+                    var diasClass = dias >= 30 ? 'dias-alerta' : (dias >= 15 ? 'dias-atencion' : '');
+                    html += '<tr class="' + (c.prioridad === 'urgente' && c.estado !== 'cerrado' && c.estado !== 'resuelto' ? 'row-urgente' : '') + '">' +
                         '<td><strong>' + c.id + '</strong></td>' +
                         '<td><a href="#" class="ver-detalle" data-id="' + c.id + '" data-tooltip="Ver detalle">' + esc(c.titulo || 'Sin titulo') + '</a></td>' +
                         '<td>' + esc(c.persona_nombre || '') + '</td>' +
                         '<td>' + esc(c.abogado_nombre || '') + '</td>' +
-                        '<td><span class="badge ' + prioridadBadge + '">' + esc(c.prioridad || 'media') + '</span></td>' +
-                        '<td><span class="badge ' + estadoBadge + '">' + esc(c.estado || 'abierto') + '</span></td>' +
-                        '<td class="small">' + (c.created_at || '') + '</td>' +
+                        '<td><span class="badge ' + pb + '">' + esc(c.prioridad || 'media') + '</span></td>' +
+                        '<td><span class="badge ' + eb + '">' + esc(el) + '</span></td>' +
+                        '<td class="small ' + diasClass + '">' + dias + '</td>' +
                         '<td class="actions">' +
-                        '<button class="btn btn-sm btn-primary btn-editar" data-id="' + c.id + '" data-tooltip="Editar caso">Editar</button> ';
-                    if (c.estado !== 'cerrado') {
-                        html += '<button class="btn btn-sm btn-success btn-cerrar" data-id="' + c.id + '" data-tooltip="Cerrar caso">Cerrar</button> ';
+                        '<button class="btn btn-sm btn-primary btn-editar" data-id="' + c.id + '" title="Editar">E</button> ';
+                    if (c.estado !== 'cerrado' && c.estado !== 'resuelto') {
+                        html += '<button class="btn btn-sm btn-secondary btn-cambiar-estado" data-id="' + c.id + '" title="Cambiar estado">S</button> ';
+                        html += '<button class="btn btn-sm btn-success btn-cerrar" data-id="' + c.id + '" title="Cerrar">C</button> ';
                     } else {
-                        html += '<button class="btn btn-sm btn-secondary btn-reabrir" data-id="' + c.id + '" data-tooltip="Reabrir caso">Reabrir</button> ';
+                        html += '<button class="btn btn-sm btn-secondary btn-reabrir" data-id="' + c.id + '" title="Reabrir">R</button> ';
                     }
-                    html += '<button class="btn btn-sm btn-danger btn-eliminar" data-id="' + c.id + '" data-tooltip="Eliminar caso">Eliminar</button>';
+                    html += '<button class="btn btn-sm btn-danger btn-eliminar" data-id="' + c.id + '" title="Eliminar">X</button>';
                     html += '</td></tr>';
                 });
                 html += '</tbody></table></div>';
@@ -751,6 +867,16 @@
                 casosContainer.querySelectorAll('.btn-editar').forEach(function(btn) {
                     btn.addEventListener('click', function() {
                         abrirEdicion(this.getAttribute('data-id'));
+                    });
+                });
+
+                casosContainer.querySelectorAll('.btn-cambiar-estado').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var caseId = this.getAttribute('data-id');
+                        document.getElementById('changeStatusCaseId').value = caseId;
+                        document.getElementById('changeStatusSelect').value = '';
+                        document.getElementById('changeStatusObservacion').value = '';
+                        document.getElementById('modalChangeStatus').style.display = 'flex';
                     });
                 });
 
@@ -795,7 +921,7 @@
             });
         }
 
-        /* ── Case detail ── */
+        /* ── Case detail with timeline and comments ── */
         function verDetalle(caseId) {
             var modal = document.getElementById('modalDetailCase');
             var content = document.getElementById('detailCaseContent');
@@ -807,14 +933,19 @@
                     return;
                 }
                 var c = res.data;
-                var prioridadBadge = c.prioridad === 'urgente' ? 'badge-warning' : (c.prioridad === 'alta' ? 'badge-warning' : 'badge-info');
-                var estadoBadge = c.estado === 'cerrado' ? 'badge-success' : 'badge-info';
+                var pb = prioridadBadges[c.prioridad] || 'badge-info';
+                var eb = statusBadges[c.estado] || 'badge-info';
+                var el = statusLabels[c.estado] || c.estado;
+                var act = c.actividades || [];
+                var dias = c.dias_abierto || 0;
+
                 var html = '<h3>' + esc(c.titulo || 'Sin titulo') + '</h3>' +
-                    '<p><span class="badge ' + prioridadBadge + '">' + esc(c.prioridad || 'media') + '</span> <span class="badge ' + estadoBadge + '">' + esc(c.estado || 'abierto') + '</span></p>' +
+                    '<p><span class="badge ' + pb + '">' + esc(c.prioridad || 'media') + '</span> <span class="badge ' + eb + '">' + esc(el) + '</span>' +
+                    (dias > 0 ? ' <span class="badge badge-info">' + dias + ' días abierto</span>' : '') + '</p>' +
                     '<div class="detail-grid">' +
                     '<div class="detail-field"><label>ID</label><p>#' + c.id + '</p></div>' +
-                    '<div class="detail-field"><label>Fecha creación</label><p>' + (c.created_at || c.assigned_at || '-') + '</p></div>' +
-                    (c.resolved_at ? '<div class="detail-field"><label>Fecha cierre</label><p>' + c.resolved_at + '</p></div>' : '') +
+                    '<div class="detail-field"><label>Creado</label><p>' + (c.assigned_at || '-') + '</p></div>' +
+                    (c.resolved_at ? '<div class="detail-field"><label>Resuelto</label><p>' + c.resolved_at + '</p></div>' : '') +
                     '<div class="detail-field"><label>Prioridad solicitante</label><p>' + esc(c.persona_prioridad || '-') + '</p></div>' +
                     '</div>' +
                     '<div class="detail-section"><h4>Abogado asignado</h4>' +
@@ -830,13 +961,55 @@
                     '<div class="detail-field"><label>Email</label><p>' + esc(c.persona_email || '-') + '</p></div>' +
                     (c.persona_telefono ? '<div class="detail-field"><label>Teléfono</label><p>' + esc(c.persona_telefono) + '</p></div>' : '') +
                     '<div class="detail-field"><label>Ubicación</label><p>' + esc(c.persona_ciudad || c.persona_estado || '-') + '</p></div>' +
-                    (c.tipo_ayuda ? '<div class="detail-field full"><label>Tipo de ayuda solicitada</label><p>' + esc(c.tipo_ayuda) + '</p></div>' : '') +
-                    (c.persona_descripcion ? '<div class="detail-field full"><label>Descripción del solicitante</label><p>' + esc(c.persona_descripcion) + '</p></div>' : '') +
+                    (c.tipo_ayuda ? '<div class="detail-field full"><label>Tipo de ayuda</label><p>' + esc(c.tipo_ayuda) + '</p></div>' : '') +
+                    (c.persona_descripcion ? '<div class="detail-field full"><label>Descripción</label><p>' + esc(c.persona_descripcion) + '</p></div>' : '') +
                     '</div></div>' +
                     (c.descripcion ? '<div class="detail-section"><h4>Descripción del caso</h4><p>' + esc(c.descripcion) + '</p></div>' : '') +
                     (c.notas ? '<div class="detail-section"><h4>Notas internas</h4><p>' + esc(c.notas) + '</p></div>' : '') +
                     (c.observaciones ? '<div class="detail-section"><h4>Observaciones de cierre</h4><p>' + esc(c.observaciones) + '</p></div>' : '');
+
+                /* ── Timeline ── */
+                html += '<div class="detail-section"><h4>Historial del Caso</h4>';
+                if (act.length > 0) {
+                    html += '<div class="timeline">';
+                    act.forEach(function(a) {
+                        var actionLabel = a.action === 'comentario' ? 'Comentario' : (a.action === 'cambio_estado' ? 'Cambio de estado' : (a.action === 'creado' ? 'Creado' : 'Actualización'));
+                        html += '<div class="timeline-item ' + a.action + '"><div class="timeline-marker"></div>' +
+                            '<div class="timeline-content"><div class="timeline-header">' +
+                            '<strong>' + esc(a.user_name || 'Sistema') + '</strong> ' +
+                            '<span class="timeline-action">' + actionLabel + '</span>' +
+                            '<span class="timeline-time">' + a.created_at + '</span></div>' +
+                            '<div class="timeline-desc">' + esc(a.description) + '</div></div></div>';
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p class="text-muted">Sin actividad registrada.</p>';
+                }
+                html += '</div>';
+
+                /* ── Comment form ── */
+                html += '<div class="detail-section comment-section"><h4>Agregar Comentario</h4>' +
+                    '<div class="comment-form"><textarea id="commentText" rows="2" placeholder="Escribe un comentario..."></textarea>' +
+                    '<button class="btn btn-sm btn-primary" id="btnAddComment" data-caseid="' + c.id + '">Enviar</button></div></div>';
+
                 content.innerHTML = html;
+
+                var btnComment = document.getElementById('btnAddComment');
+                if (btnComment) {
+                    btnComment.addEventListener('click', function() {
+                        var ta = document.getElementById('commentText');
+                        var comment = ta.value.trim();
+                        if (!comment) { showToast('Escribe un comentario.', 'info'); return; }
+                        api('POST', basePath + 'api/agregar-comentario', { id: parseInt(this.getAttribute('data-caseid'), 10), comentario: comment }, function(err, res) {
+                            if (res && res.success) {
+                                showToast('Comentario agregado.', 'success');
+                                verDetalle(parseInt(btnComment.getAttribute('data-caseid'), 10));
+                            } else {
+                                showToast(res ? res.message : 'Error al agregar comentario.', 'error');
+                            }
+                        });
+                    });
+                }
             });
         }
 
@@ -888,6 +1061,35 @@
             });
         }
 
+        /* ── Change status modal ── */
+        var modalStatus = document.getElementById('modalChangeStatus');
+        if (modalStatus) {
+            document.getElementById('modalStatusCloseBtn').addEventListener('click', function() { modalStatus.style.display = 'none'; });
+            document.getElementById('btnCancelStatus').addEventListener('click', function() { modalStatus.style.display = 'none'; });
+            modalStatus.addEventListener('click', function(e) { if (e.target === modalStatus) modalStatus.style.display = 'none'; });
+        }
+
+        var formChangeStatus = document.getElementById('formChangeStatus');
+        if (formChangeStatus) {
+            formChangeStatus.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var caseId = parseInt(document.getElementById('changeStatusCaseId').value, 10);
+                var estado = document.getElementById('changeStatusSelect').value;
+                var observacion = document.getElementById('changeStatusObservacion').value;
+                if (!estado) { showToast('Seleccione un estado.', 'info'); return; }
+                api('POST', basePath + 'api/cambio-estado', { id: caseId, estado: estado, observacion: observacion }, function(err, res) {
+                    if (res && res.success) {
+                        modalStatus.style.display = 'none';
+                        showToast(res.message || 'Estado cambiado.', 'success');
+                        loadCasos();
+                        loadStats();
+                    } else {
+                        showToast(res ? res.message : 'Error al cambiar estado.', 'error');
+                    }
+                });
+            });
+        }
+
         /* ── Edit case modal ── */
         var modalEdit = document.getElementById('modalEditCase');
         if (modalEdit) {
@@ -934,7 +1136,7 @@
         /* ── Global Escape key for all modals ── */
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                [modalClose, modalEdit, modalDetail].forEach(function(m) {
+                [modalClose, modalEdit, modalDetail, modalStatus].forEach(function(m) {
                     if (m && m.style.display !== 'none' && m.style.display !== '') m.style.display = 'none';
                 });
             }
@@ -950,14 +1152,8 @@
         });
         if (btnExportCasos) btnExportCasos.addEventListener('click', function() {
             showToast('Exportando CSV...', 'info');
-            apiGet(basePath + 'api/exportar-casos' + buildCasosQuery(), function(err, res) {
-                if (res && res.success && res.data) {
-                    downloadCSV(res.data, 'casos');
-                    showToast('CSV exportado.', 'success');
-                } else {
-                    showToast('Error al exportar.', 'error');
-                }
-            });
+            window.open(basePath + 'api/exportar-casos' + buildCasosQuery(), '_blank');
+            setTimeout(function() { showToast('Descarga iniciada.', 'success'); }, 500);
         });
         if (filterCasosSearch) {
             var debounceTimer;
@@ -1001,12 +1197,13 @@
                 }
 
                 var html = '<div class="reporte-output">';
-
                 var total = data.length;
-                var abiertos = data.filter(function(c) { return c.estado === 'abierto'; }).length;
-                var cerrados = data.filter(function(c) { return c.estado === 'cerrado'; }).length;
-                var urgentes = data.filter(function(c) { return c.prioridad === 'urgente'; }).length;
-                var altas = data.filter(function(c) { return c.prioridad === 'alta'; }).length;
+                var abiertos = 0, cerrados = 0, urgentes = 0, altas = 0;
+                data.forEach(function(c) {
+                    if (c.estado === 'cerrado' || c.estado === 'resuelto') cerrados++; else abiertos++;
+                    if (c.prioridad === 'urgente') urgentes++;
+                    if (c.prioridad === 'alta') altas++;
+                });
 
                 html += '<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">' +
                     '<div class="stat-card" style="flex:1;min-width:100px;"><h3>Total</h3><p>' + total + '</p></div>' +
@@ -1025,19 +1222,25 @@
 
                 Object.keys(grouped).sort().forEach(function(nombre) {
                     var casos = grouped[nombre];
-                    var abs = casos.filter(function(c) { return c.estado === 'abierto'; }).length;
-                    var cers = casos.filter(function(c) { return c.estado === 'cerrado'; }).length;
-                    var urgs = casos.filter(function(c) { return c.prioridad === 'urgente'; }).length;
+                    var abs = 0, cers = 0, urgs = 0;
+                    casos.forEach(function(c) {
+                        if (c.estado !== 'cerrado' && c.estado !== 'resuelto') abs++;
+                        else cers++;
+                        if (c.prioridad === 'urgente') urgs++;
+                    });
                     html += '<div class="reporte-abogado"><h4>' + esc(nombre) + '</h4>' +
                         '<p>Total: <strong>' + casos.length + '</strong> | Abiertos: ' + abs + ' | Cerrados: ' + cers + ' | Urgentes: ' + urgs + '</p>' +
-                        '<div style="overflow-x:auto;"><table class="crm-table"><thead><tr><th>ID</th><th>Titulo</th><th>Persona</th><th>Prioridad</th><th>Estado</th><th>Creado</th></tr></thead><tbody>';
+                        '<div style="overflow-x:auto;"><table class="crm-table"><thead><tr><th>ID</th><th>Titulo</th><th>Persona</th><th>Prioridad</th><th>Estado</th><th>Dias</th><th>Creado</th></tr></thead><tbody>';
                     casos.forEach(function(c) {
-                        var pb = c.prioridad === 'urgente' ? 'badge-warning' : (c.prioridad === 'alta' ? 'badge-warning' : 'badge-info');
-                        var eb = c.estado === 'cerrado' ? 'badge-success' : 'badge-info';
+                        var pb = prioridadBadges[c.prioridad] || 'badge-info';
+                        var eb = statusBadges[c.estado] || 'badge-info';
+                        var el = statusLabels[c.estado] || c.estado;
+                        var dias = parseInt(c.dias_abierto, 10) || 0;
                         html += '<tr><td><strong>' + c.id + '</strong></td><td>' + esc(c.titulo || '') + '</td><td>' + esc(c.persona_nombre || '') + '</td>' +
                             '<td><span class="badge ' + pb + '">' + esc(c.prioridad || 'media') + '</span></td>' +
-                            '<td><span class="badge ' + eb + '">' + esc(c.estado || '') + '</span></td>' +
-                            '<td class="small">' + (c.created_at || '') + '</td></tr>';
+                            '<td><span class="badge ' + eb + '">' + esc(el) + '</span></td>' +
+                            '<td class="small">' + dias + '</td>' +
+                            '<td class="small">' + (c.assigned_at || c.created_at || '') + '</td></tr>';
                     });
                     html += '</tbody></table></div></div>';
                 });
@@ -1048,10 +1251,7 @@
             });
         }
 
-        if (btnReporte && reporteContainer) {
-            btnReporte.addEventListener('click', function() { cargarReporte(); });
-        }
-
+        if (btnReporte && reporteContainer) btnReporte.addEventListener('click', function() { cargarReporte(); });
         if (btnExportReporte) {
             btnExportReporte.addEventListener('click', function() {
                 if (window.__reporteData && window.__reporteData.length) {

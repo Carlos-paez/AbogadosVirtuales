@@ -26,8 +26,8 @@
                 <select id="tipo_documento" name="tipo_documento">
                     <option value="V">V - Venezolano</option>
                     <option value="E">E - Extranjero</option>
-                    <option value="P">P - Pasaporte</option>
                     <option value="J">J - Juridico</option>
+                    <option value="Pasaporte">Pasaporte</option>
                 </select>
             </div>
         </div>
@@ -44,7 +44,7 @@
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label for="estado">Estado de Venezuela *</label>
+                <label for="estado">Estado / Provincia *</label>
                 <select id="estado" name="estado" required data-validate="required">
                     <option value="">Seleccione un estado</option>
                 </select>

@@ -1,6 +1,6 @@
-# ⚖️ Abogados por Venezuela — Red de Apoyo Legal
+# ⚖️ Red de Apoyo Legal
 
-Aplicación web PHP para gestionar una red de abogados voluntarios que brindan orientación jurídica gratuita a personas afectadas por la crisis en Venezuela. Incluye registro de profesionales, solicitudes de ayuda, asignación de casos, CRM completo y generación de reportes.
+Aplicación web PHP para gestionar una red de abogados voluntarios que brindan orientación jurídica gratuita a personas afectadas por la crisis en Venezuela. Incluye registro de profesionales, solicitudes de ayuda, asignación de casos, CRM completo con trazabilidad, autenticación y generación de reportes.
 
 ---
 
@@ -8,7 +8,7 @@ Aplicación web PHP para gestionar una red de abogados voluntarios que brindan o
 
 | Capa | Tecnología |
 |------|-----------|
-| **Backend** | PHP 8.3, SQLite, PDO |
+| **Backend** | PHP 8.3+, SQLite, PDO |
 | **Frontend** | HTML5, CSS3 (`style.css`), JavaScript (`app.js`) |
 | **Arquitectura** | MVC propio (Router → Controller → Model → View) |
 | **Base de datos** | SQLite (`data/app.db`), creada y migrada automáticamente |
@@ -24,33 +24,36 @@ abogados/
 ├── .htaccess                    # Rewrite rules para Apache
 ├── data/
 │   ├── app.db                   # Base de datos SQLite (auto-creada)
-│   ├── info.md                  # Contenido de la página informativa
+│   └── info.md                  # Contenido de la página informativa
 ├── app/
 │   ├── autoload.php             # Autoloader PSR-4 (namespace App\)
 │   ├── Core/
 │   │   ├── Router.php           # Enrutador GET/POST con base path
-│   │   ├── Controller.php       # Controlador base (view, json, getJsonInput)
+│   │   ├── Controller.php       # Controlador base (view, json, getJsonInput, requireAuth)
 │   │   └── Model.php            # Modelo base (PDO, schema, migraciones)
 │   ├── Controllers/
+│   │   ├── AuthController.php   # Login/logout vía API + formulario
 │   │   ├── HomeController.php   # Página de información
 │   │   ├── LawyerController.php # CRUD + búsqueda + exportación de abogados
 │   │   ├── RequestController.php# Registro de personas afectadas
 │   │   ├── ReportController.php # Página de reportes
-│   │   └── CrmController.php    # CRM: asignación, edición, cierre, reapertura
+│   │   └── CrmController.php    # CRM completo con trazabilidad
 │   ├── Models/
 │   │   ├── Lawyer.php           # Abogados (crear, listar, buscar, contar, exportar)
 │   │   ├── AffectedPerson.php   # Personas afectadas (crear, listar, buscar)
-│   │   └── LegalCase.php        # Casos (CRUD, stats, export CSV)
+│   │   ├── LegalCase.php        # Casos (CRUD, transiciones, stats, actividad, export CSV)
+│   │   └── User.php             # Usuarios del sistema (login, verificación)
 │   └── Views/
-│       ├── layout.php           # Layout global (nav, footer, title)
+│       ├── layout.php           # Layout global (nav, footer, title, auth condicional)
 │       ├── info.php             # Página informativa + tabla de contenidos
 │       ├── registro.php         # Formulario de registro de abogados
+│       ├── login.php            # Inicio de sesión
 │       ├── reportes.php         # Reportes con búsqueda y filtros
 │       ├── solicitudes.php      # Formulario de solicitud de ayuda
-│       └── crm.php              # CRM: tabs, stats, modales, reportes
+│       └── crm.php              # CRM: dashboard, tabs, modales, timeline, comentarios
 └── assets/
     ├── css/style.css            # Todos los estilos (Inter, glassmorphism, animaciones)
-    └── js/app.js                # Todo el JavaScript (fetch, toasts, modales, CRM)
+    └── js/app.js                # Todo el JavaScript (fetch, toasts, modales, CRM, login)
 ```
 
 ---
@@ -60,7 +63,8 @@ abogados/
 ### Página informativa (`/`, `/info`)
 - Contenido markdown renderizado como HTML
 - Tabla de contenidos con IDs ancla y smooth scroll
-- Banner informativo sobre la causa
+- Banner informativo sobre la red de apoyo
+- Enfoque en la crisis humanitaria de Venezuela, sin referencias políticas
 
 ### Registro de abogados (`/registro`)
 - Formulario con validación en frontend y backend
@@ -74,48 +78,87 @@ abogados/
 - Validación: nombre, email, estado, descripción obligatorios
 - `tipo_ayuda` se envía como array y se almacena como string separado por comas
 
-### Reportes (`/reportes`)
+### Autenticación (`/login`)
+- Inicio de sesión con usuario y contraseña (bcrypt)
+- Sesiones PHP con `session_start()`
+- Usuario admin creado automáticamente en el primer intento de login
+- Navegación condicional: muestra CRM y Reportes solo para usuarios autenticados
+- Protección de rutas: las páginas y APIs del CRM redirigen con 401 si no hay sesión
+
+### CRM (`/crm`) — protegido con autenticación
+
+**Dashboard**
+- Estadísticas: total abogados, solicitudes, casos abiertos/cerrados, barra de progreso
+- Gráfico de casos por estado (chart-bar)
+- Casos antiguos con alerta visual (>15 días atención, >30 días urgente)
+- Actividad reciente (feed en vivo)
+- Top abogados por casos abiertos/cerrados
+
+**Asignar caso**
+- Selects con personas afectadas y abogados disponibles
+- Prioridad (baja, media, alta, urgente)
+- Validación de claves foráneas
+
+**Lista de casos**
+- Filtros por texto, estado y prioridad
+- Indicador visual de urgencia (borde rojo `row-urgente`)
+- Contador de días desde la apertura
+- Exportación a CSV con BOM
+
+**Gestión de casos**
+- **Ver detalle**: modal con información completa, abogado, persona afectada, historial
+- **Editar**: modal para cambiar título, prioridad, abogado, descripción, notas internas
+- **Cambiar estado**: flujo pendiente → en_proceso → derivado → resuelto → cerrado
+- **Cerrar**: modal con observaciones de cierre
+- **Reabrir**: disponible solo para casos cerrados
+- **Eliminar**: con confirmación
+
+**Trazabilidad**
+- Cada acción (creación, cambio de estado, comentario, cierre, reapertura) se registra en `case_activities`
+- Timeline visual en el detalle del caso con marcadores por tipo de acción
+- Feed de actividad reciente en el dashboard
+
+**Comentarios**
+- Sección de comentarios en el detalle de cada caso
+- Los comentarios quedan registrados en el historial con tipo `comment`
+
+### Reportes (`/reportes`) — protegido con autenticación
 - Tabla de abogados con búsqueda por texto
 - Filtros por estado y jurisdicción
 - Resumen: total de abogados, por jurisdicción, por estado
 - Exportación a CSV con BOM (compatible con Excel)
 
-### CRM (`/crm`)
-- **Dashboard con estadísticas**: total abogados, solicitudes, casos abiertos/cerrados, barra de progreso, gráfico de prioridades, top abogados
-- **Asignar caso**: selects con personas y abogados, prioridad, validación FK
-- **Lista de casos**: filtros por texto, estado, prioridad; export CSV
-- **Detalle de caso**: modal con información completa del caso, abogado, persona
-- **Editar caso**: modal para cambiar título, prioridad, abogado, descripción, notas
-- **Cerrar caso**: modal con observaciones
-- **Reabrir caso**: solo disponible para casos cerrados
-- **Reporte general**: filtros estado/prioridad con tabla y export CSV
-
 ### API REST
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/obtener-abogados` | Listar abogados (filtros: estado, jurisdiccion) |
-| GET | `/api/buscar-abogados?q=` | Buscar abogados por texto |
-| GET | `/api/obtener-personas` | Listar personas afectadas |
-| GET | `/api/buscar-personas?q=` | Buscar personas por texto |
-| GET | `/api/obtener-casos` | Listar casos (filtros: estado, prioridad, q) |
-| GET | `/api/obtener-caso?id=N` | Detalle de un caso con joins |
-| GET | `/api/estadisticas` | Estadísticas completas |
-| GET | `/api/exportar-abogados` | Exportar CSV de abogados |
-| GET | `/api/exportar-casos` | Exportar CSV de casos |
-| POST | `/api/registro-abogado` | Crear abogado |
-| POST | `/api/registro-afectado` | Crear persona afectada |
-| POST | `/api/asignar-caso` | Asignar caso (valida FK) |
-| POST | `/api/actualizar-caso` | Editar caso (título, prioridad, abogado, notas) |
-| POST | `/api/cerrar-caso` | Cerrar caso |
-| POST | `/api/reabrir-caso` | Reabrir caso |
-| POST | `/api/eliminar-caso` | Eliminar caso |
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | `/api/obtener-abogados` | — | Listar abogados (filtros: estado, jurisdiccion) |
+| GET | `/api/buscar-abogados?q=` | — | Buscar abogados por texto |
+| GET | `/api/obtener-personas` | — | Listar personas afectadas |
+| GET | `/api/buscar-personas?q=` | — | Buscar personas por texto |
+| POST | `/api/registro-abogado` | — | Crear abogado |
+| POST | `/api/registro-afectado` | — | Crear persona afectada |
+| POST | `/api/login` | — | Iniciar sesión (email+password) |
+| GET | `/api/obtener-casos` | Sí | Listar casos (filtros: estado, prioridad, q) |
+| GET | `/api/obtener-caso?id=N` | Sí | Detalle de un caso con joins |
+| GET | `/api/estadisticas` | Sí | Estadísticas completas del dashboard |
+| GET | `/api/actividades-recientes` | Sí | Feed de actividad reciente |
+| GET | `/api/actividades-caso?id=N` | Sí | Historial completo de un caso |
+| GET | `/api/exportar-abogados` | Sí | Exportar CSV de abogados |
+| GET | `/api/exportar-casos` | Sí | Exportar CSV de casos |
+| POST | `/api/asignar-caso` | Sí | Asignar caso (valida FK) |
+| POST | `/api/actualizar-caso` | Sí | Editar caso (título, prioridad, abogado, notas) |
+| POST | `/api/cambiar-estado` | Sí | Cambiar estado del caso |
+| POST | `/api/agregar-comentario` | Sí | Agregar comentario a un caso |
+| POST | `/api/cerrar-caso` | Sí | Cerrar caso |
+| POST | `/api/reabrir-caso` | Sí | Reabrir caso |
+| POST | `/api/eliminar-caso` | Sí | Eliminar caso |
 
 ---
 
 ## Base de datos
 
-Tres tablas SQLite con foreign keys y migración automática:
+Cinco tablas SQLite con foreign keys y migración automática:
 
 ```sql
 lawyers (id, nombre, email, telefono, tipo_documento, numero_documento,
@@ -126,6 +169,11 @@ affected_people (id, nombre, email, telefono, estado, ciudad,
 
 cases (id, lawyer_id FK, person_id FK, titulo, descripcion, prioridad,
        estado, assigned_at, resolved_at, notas, observaciones)
+
+case_activities (id, case_id FK, user_name, action, field_name,
+                 old_value, new_value, description, created_at)
+
+users (id, email, password_hash, nombre, role, created_at)
 ```
 
 El archivo `data/app.db` se crea solo si no existe. Si ya existe con columnas faltantes, el método `Model::migrate()` las agrega con `ALTER TABLE ADD COLUMN` usando `PRAGMA table_info()` — los datos existentes nunca se pierden.
@@ -141,6 +189,12 @@ php -S localhost:8000 -t D:\DEV\abogados D:\DEV\abogados\index.php
 
 O con Apache: apuntar el DocumentRoot a `D:\DEV\abogados` y el `.htaccess` incluido se encarga de las rewrites.
 
+### Primer uso
+
+1. Iniciar el servidor
+2. Visitar cualquier página pública (las tablas se crean automáticamente)
+3. Ir a `/login` e iniciar sesión con `admin` / `admin` (se crea automáticamente en el primer intento)
+
 ---
 
 ## Convenciones de código
@@ -155,6 +209,8 @@ O con Apache: apuntar el DocumentRoot a `D:\DEV\abogados` y el `.htaccess` inclu
   - `Foreign key constraint` → 400 Bad Request
   - Otros → 500 Internal Server Error
 - **CSV**: incluye BOM `\xEF\xBB\xBF` para compatibilidad con Excel
+- **Auth**: sesiones PHP + bcrypt (`password_hash`/`password_verify`); rutas protegidas con `requireAuth()`
+- **Trazabilidad**: toda modificación de casos se registra en `case_activities` con usuario, acción y valores anteriores/nuevos
 
 ---
 
@@ -162,8 +218,13 @@ O con Apache: apuntar el DocumentRoot a `D:\DEV\abogados` y el `.htaccess` inclu
 
 | Página | Descripción |
 |--------|-------------|
-| `/` | Información de la causa y contexto |
+| `/` | Información sobre la red de apoyo (enfoque Venezuela) |
 | `/registro` | Formulario de registro de abogados |
 | `/solicitudes` | Solicitud de apoyo legal |
+| `/login` | Inicio de sesión |
+| `/crm` | CRM completo con dashboard, estadísticas, timeline, comentarios |
 | `/reportes` | Reportes de abogados con filtros y exportación |
-| `/crm` | CRM completo con estadísticas, tabs y modales |
+
+---
+
+Creada por Carlos Páez — Estudiante de la UPTAEB — con el apoyo de herramientas de IA, con la intención de aportar ayuda en momentos difíciles.
