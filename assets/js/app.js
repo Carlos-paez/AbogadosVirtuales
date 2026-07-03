@@ -417,13 +417,14 @@
             showLoading(btn);
             msg.style.display = 'none';
 
-            api('POST', basePath + 'api/login', {
+            api('POST', basePath + '/api/login', {
                 username: document.getElementById('username').value,
-                password: document.getElementById('password').value
+                password: document.getElementById('password').value,
+                _csrf: typeof CSRF_TOKEN !== 'undefined' ? CSRF_TOKEN : ''
             }, function(err, res) {
                 hideLoading(btn);
                 if (res && res.success) {
-                    window.location.href = basePath + 'crm';
+                    window.location.href = basePath + '/crm';
                 } else {
                     var m = res ? res.error : 'Error de conexion.';
                     showFormMsg(msg, m, 'error');
@@ -487,6 +488,10 @@
                 html += '<div class="report-group"><h2>' + esc(est) + '</h2><div class="lawyer-cards">';
                 grouped[est].forEach(function(a) {
                     html += '<div class="lawyer-card">' +
+                        '<div class="lawyer-card-actions">' +
+                        '<button class="btn-edit-lawyer" data-id="' + a.id + '" title="Editar">&#9998;</button>' +
+                        '<button class="btn-delete-lawyer" data-id="' + a.id + '" data-name="' + esc(a.nombre) + '" title="Eliminar">&#10005;</button>' +
+                        '</div>' +
                         '<h3>' + esc(a.nombre) + '</h3>' +
                         '<p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom;margin-right:4px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>' + esc(a.email) + '</p>' +
                         (a.telefono ? '<p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom;margin-right:4px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>' + esc(a.telefono) + '</p>' : '') +
@@ -498,11 +503,124 @@
                 html += '</div></div>';
             });
             container.innerHTML = html;
+
+            document.querySelectorAll('.btn-edit-lawyer').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var id = parseInt(this.getAttribute('data-id'), 10);
+                    abrirEditarAbogado(id, data);
+                });
+            });
+            document.querySelectorAll('.btn-delete-lawyer').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var id = parseInt(this.getAttribute('data-id'), 10);
+                    var name = this.getAttribute('data-name');
+                    abrirEliminarAbogado(id, name);
+                });
+            });
         }
+
+        function abrirEditarAbogado(id, data) {
+            var a = data.find(function(item) { return item.id === id; });
+            if (!a) return;
+            document.getElementById('editLawyerId').value = a.id;
+            document.getElementById('editNombre').value = a.nombre || '';
+            document.getElementById('editEmail').value = a.email || '';
+            document.getElementById('editTelefono').value = a.telefono || '';
+            document.getElementById('editTipoDoc').value = a.tipo_documento || 'V';
+            document.getElementById('editNumDoc').value = a.numero_documento || '';
+            document.getElementById('editAniosExp').value = a.anios_experiencia || 0;
+            document.getElementById('editEstado').value = a.estado || '';
+            document.getElementById('editCiudad').value = a.ciudad || '';
+            document.getElementById('editJurisdiccion').value = a.jurisdiccion || '';
+            document.getElementById('editEspecialidad').value = a.especialidad || '';
+            document.getElementById('msgEditLawyer').style.display = 'none';
+            document.getElementById('modalEditLawyer').style.display = 'flex';
+        }
+
+        function abrirEliminarAbogado(id, name) {
+            document.getElementById('deleteLawyerId').value = id;
+            document.getElementById('deleteLawyerText').textContent = '¿Esta seguro de eliminar a "' + name + '"? Esta accion no se puede deshacer.';
+            document.getElementById('msgDeleteLawyer').style.display = 'none';
+            document.getElementById('modalDeleteLawyer').style.display = 'flex';
+        }
+
+        function cerrarModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        document.getElementById('modalEditLawyerClose').addEventListener('click', function() { cerrarModal('modalEditLawyer'); });
+        document.getElementById('btnCancelEditLawyer').addEventListener('click', function() { cerrarModal('modalEditLawyer'); });
+        document.getElementById('modalDeleteLawyerClose').addEventListener('click', function() { cerrarModal('modalDeleteLawyer'); });
+        document.getElementById('btnCancelDeleteLawyer').addEventListener('click', function() { cerrarModal('modalDeleteLawyer'); });
+
+        document.getElementById('modalEditLawyer').addEventListener('click', function(e) {
+            if (e.target === this) cerrarModal('modalEditLawyer');
+        });
+        document.getElementById('modalDeleteLawyer').addEventListener('click', function(e) {
+            if (e.target === this) cerrarModal('modalDeleteLawyer');
+        });
+
+        populateSelect('editEstado', estados);
+        populateSelect('editJurisdiccion', jurisdicciones);
+
+        document.getElementById('formEditLawyer').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var btn = document.getElementById('btnEditLawyer');
+            var msg = document.getElementById('msgEditLawyer');
+            var id = parseInt(document.getElementById('editLawyerId').value, 10);
+            if (!id) return;
+            showLoading(btn);
+            msg.style.display = 'none';
+            api('POST', basePath + '/api/actualizar-abogado', {
+                id: id,
+                nombre: document.getElementById('editNombre').value.trim(),
+                email: document.getElementById('editEmail').value.trim(),
+                telefono: document.getElementById('editTelefono').value.trim(),
+                tipo_documento: document.getElementById('editTipoDoc').value,
+                numero_documento: document.getElementById('editNumDoc').value.trim(),
+                anios_experiencia: parseInt(document.getElementById('editAniosExp').value, 10) || 0,
+                estado: document.getElementById('editEstado').value,
+                ciudad: document.getElementById('editCiudad').value.trim(),
+                jurisdiccion: document.getElementById('editJurisdiccion').value,
+                especialidad: document.getElementById('editEspecialidad').value.trim()
+            }, function(err, res) {
+                hideLoading(btn);
+                if (res && res.success) {
+                    showToast('Abogado actualizado correctamente.', 'success');
+                    cerrarModal('modalEditLawyer');
+                    loadData();
+                } else {
+                    var m = res ? res.error : 'Error de conexion.';
+                    showFormMsg(msg, m, 'error');
+                    showToast(m, 'error');
+                }
+            });
+        });
+
+        document.getElementById('btnConfirmDeleteLawyer').addEventListener('click', function() {
+            var btn = this;
+            var msg = document.getElementById('msgDeleteLawyer');
+            var id = parseInt(document.getElementById('deleteLawyerId').value, 10);
+            if (!id) return;
+            showLoading(btn);
+            msg.style.display = 'none';
+            api('POST', basePath + '/api/eliminar-abogado', { id: id }, function(err, res) {
+                hideLoading(btn);
+                if (res && res.success) {
+                    showToast('Abogado eliminado correctamente.', 'success');
+                    cerrarModal('modalDeleteLawyer');
+                    loadData();
+                } else {
+                    var m = res ? res.error : 'Error de conexion.';
+                    showFormMsg(msg, m, 'error');
+                    showToast(m, 'error');
+                }
+            });
+        });
 
         function loadData() {
             container.innerHTML = skeletonCards(4);
-            apiGet(basePath + 'api/obtener-abogados' + buildQuery(), function(err, res) {
+            apiGet(basePath + '/api/obtener-abogados' + buildQuery(), function(err, res) {
                 if (res && res.success) {
                     renderAbogados(res.data || []);
                 } else {
@@ -520,7 +638,7 @@
         });
         if (btnExport) btnExport.addEventListener('click', function() {
             showToast('Exportando CSV...', 'info');
-            window.open(basePath + 'api/exportar-abogados' + buildQuery(), '_blank');
+            window.open(basePath + '/api/exportar-abogados' + buildQuery(), '_blank');
             setTimeout(function() { showToast('Descarga iniciada.', 'success'); }, 500);
         });
         if (searchInput) {

@@ -13,6 +13,7 @@ Aplicación web PHP para gestionar una red de abogados voluntarios que brindan o
 | **Documentación** | Manual de usuario integrado (`/manual`) + `MANUAL.md` |
 | **Arquitectura** | MVC propio (Router → Controller → Model → View) |
 | **Base de datos** | SQLite (`data/app.db`), creada y migrada automáticamente |
+| **Autenticación** | Sesiones PHP con bcrypt, CSRF, rate limiting, HttpOnly/SameSite cookies |
 | **Servidor** | PHP built-in (`php -S`) o Apache con `.htaccess` |
 
 ---
@@ -41,7 +42,7 @@ abogados/
 │   │   ├── ReportController.php # Página de reportes
 │   │   └── CrmController.php    # CRM completo con trazabilidad
 │   ├── Models/
-│   │   ├── Lawyer.php           # Abogados (crear, listar, buscar, contar, exportar)
+│   │   ├── Lawyer.php           # Abogados (CRUD completo: crear, listar, buscar, actualizar, eliminar, exportar)
 │   │   ├── AffectedPerson.php   # Personas afectadas (crear, listar, buscar)
 │   │   ├── LegalCase.php        # Casos (CRUD, transiciones, stats, actividad, export CSV)
 │   │   └── User.php             # Usuarios del sistema (login, verificación)
@@ -83,7 +84,10 @@ abogados/
 
 ### Autenticación (`/login`)
 - Inicio de sesión con usuario y contraseña (bcrypt)
-- Sesiones PHP con `session_start()`
+- Sesiones PHP seguras: cookies HttpOnly, SameSite=Strict, Secure si HTTPS
+- Regeneración de ID de sesión (`session_regenerate_id`) después de login exitoso
+- Protección CSRF mediante token de 32 bytes en todas las solicitudes de login
+- Rate limiting: bloqueo de 15 minutos tras 5 intentos fallidos
 - Usuario admin creado automáticamente en el primer intento de login
 - Navegación condicional: muestra CRM y Reportes solo para usuarios autenticados
 - Protección de rutas: las páginas y APIs del CRM redirigen con 401 si no hay sesión
@@ -125,10 +129,13 @@ abogados/
 - Sección de comentarios en el detalle de cada caso
 - Los comentarios quedan registrados en el historial con tipo `comment`
 
-### Reportes (`/reportes`) — protegido con autenticación
-- Tabla de abogados con búsqueda por texto
+### Reportes / Gestión de Abogados (`/reportes`) — protegido con autenticación
+- Directorio de abogados con búsqueda por texto
 - Filtros por estado y jurisdicción
-- Resumen: total de abogados, por jurisdicción, por estado
+- Resultados agrupados por estado en tarjetas visuales
+- **Editar abogado**: modal con formulario completo para modificar datos
+- **Eliminar abogado**: confirmación con nombre del abogado
+- Resumen: total de abogados encontrados
 - Exportación a CSV con BOM (compatible con Excel)
 
 ### Manual de Usuario (`/manual`)
@@ -154,6 +161,8 @@ abogados/
 | GET | `/api/estadisticas` | Sí | Estadísticas completas del dashboard |
 | GET | `/api/actividades-recientes` | Sí | Feed de actividad reciente |
 | GET | `/api/actividades-caso?id=N` | Sí | Historial completo de un caso |
+| POST | `/api/actualizar-abogado` | Sí | Actualizar datos de un abogado |
+| POST | `/api/eliminar-abogado` | Sí | Eliminar un abogado |
 | GET | `/api/exportar-abogados` | Sí | Exportar CSV de abogados |
 | GET | `/api/exportar-casos` | Sí | Exportar CSV de casos |
 | POST | `/api/asignar-caso` | Sí | Asignar caso (valida FK) |
@@ -203,7 +212,7 @@ O con Apache: apuntar el DocumentRoot a la carpeta del proyecto y el `.htaccess`
 
 1. Iniciar el servidor
 2. Visitar cualquier página pública (las tablas se crean automáticamente)
-3. Ir a `/login` e iniciar sesión con `admin` / `admin` (se crea automáticamente en el primer intento)
+3. Ir a `/login` e iniciar sesión con las credenciales administrador (se crean automáticamente en el primer inicio de sesión)
 
 ---
 
@@ -213,13 +222,14 @@ O con Apache: apuntar el DocumentRoot a la carpeta del proyecto y el `.htaccess`
 - **Autoloader**: `spl_autoload_register` en `app/autoload.php`
 - **Base path**: el router normaliza `SCRIPT_NAME` para funcionar desde subdirectorios
 - **JSON input**: toda API POST lee `php://input` con `json_decode`
-- **CSRF**: no implementado (entorno controlado); agregar middleware si se despliega en producción
+- **CSRF**: token de 32 bytes generado por `Auth::generateCsrfToken()`, validado en login
+- **Rate limiting**: máximo 5 intentos de login, bloqueo de 15 minutos por sesión
 - **Manejo de errores SQL**:
   - `Unique constraint` → 409 Conflict con `fieldErrors`
   - `Foreign key constraint` → 400 Bad Request
   - Otros → 500 Internal Server Error
 - **CSV**: incluye BOM `\xEF\xBB\xBF` para compatibilidad con Excel
-- **Auth**: sesiones PHP + bcrypt (`password_hash`/`password_verify`); rutas protegidas con `requireAuth()`
+- **Auth**: sesiones PHP con bcrypt, `session_regenerate_id()` tras login, cookies con HttpOnly/SameSite=Strict; rutas protegidas con `requireAuth()`
 - **Trazabilidad**: toda modificación de casos se registra en `case_activities` con usuario, acción y valores anteriores/nuevos
 
 ---

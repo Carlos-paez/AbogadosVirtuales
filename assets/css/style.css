@@ -574,6 +574,7 @@ p { margin-bottom: 1rem; color: var(--text-secondary); line-height: 1.7; }
     box-shadow: var(--shadow);
     border: 1px solid var(--glass-border);
     transition: all var(--transition);
+    position: relative;
 }
 
 .lawyer-card:hover {
@@ -588,6 +589,54 @@ p { margin-bottom: 1rem; color: var(--text-secondary); line-height: 1.7; }
     margin-bottom: 0.35rem;
     font-size: 0.875rem;
     color: var(--text-secondary);
+}
+
+.lawyer-card-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.lawyer-card:hover .lawyer-card-actions {
+    opacity: 1;
+}
+
+.btn-edit-lawyer,
+.btn-delete-lawyer {
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    transition: all 0.15s ease;
+}
+
+.btn-edit-lawyer {
+    background: var(--primary-lighter);
+    color: var(--primary);
+}
+
+.btn-edit-lawyer:hover {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-delete-lawyer {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.btn-delete-lawyer:hover {
+    background: #ef4444;
+    color: #fff;
 }
 
 .report-group { margin-bottom: 2rem; }

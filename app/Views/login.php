@@ -21,6 +21,6 @@
             </div>
             <div id="formMessage" class="form-message" style="display:none;"></div>
         </form>
-        <p class="login-info">Usuario por defecto: <strong>admin</strong> — Contraseña: <strong>admin</strong></p>
+        <p class="login-info">Use sus credenciales de acceso proporcionadas por el administrador.</p>
     </div>
 </div>

@@ -45,7 +45,7 @@
         </div>
     </footer>
 
-    <script>var BASE_PATH = <?= json_encode($basePath) ?>;</script>
+    <script>var BASE_PATH = <?= json_encode($basePath) ?>;var CSRF_TOKEN = <?= json_encode($csrf_token ?? '') ?>;</script>
     <script src="<?= $basePath ?>/assets/js/app.js"></script>
 </body>
 </html>

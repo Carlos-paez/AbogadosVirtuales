@@ -39,6 +39,8 @@ $router->get('/api/obtener-personas', 'RequestController@apiList');
 $router->get('/api/obtener-casos', 'CrmController@apiList');
 $router->get('/api/estadisticas', 'CrmController@apiStats');
 $router->get('/api/buscar-abogados', 'LawyerController@apiSearch');
+$router->post('/api/actualizar-abogado', 'LawyerController@apiUpdate');
+$router->post('/api/eliminar-abogado', 'LawyerController@apiDelete');
 $router->get('/api/buscar-personas', 'RequestController@apiSearch');
 $router->get('/api/exportar-abogados', 'LawyerController@apiExport');
 $router->get('/api/exportar-casos', 'CrmController@apiExport');
