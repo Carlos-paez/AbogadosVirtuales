@@ -26,4 +26,19 @@ class User extends Model
     {
         return (int)self::db()->query("SELECT COUNT(*) FROM users")->fetchColumn();
     }
+
+    public static function findById(int $id): ?array
+    {
+        $stmt = self::db()->prepare("SELECT * FROM users WHERE id = ?");
+        $stmt->execute([$id]);
+        $user = $stmt->fetch();
+        return $user ?: null;
+    }
+
+    public static function updatePassword(int $id, string $passwordHash): bool
+    {
+        $stmt = self::db()->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
+        $stmt->execute([$passwordHash, $id]);
+        return true;
+    }
 }

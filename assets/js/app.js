@@ -703,11 +703,12 @@
             casos.forEach(function(c) {
                 var dias = parseInt(c.dias_abierto, 10) || 0;
                 var urgentClass = dias >= 30 ? 'urgent-case' : (dias >= 15 ? 'warning-case' : '');
+                var diasClass = dias >= 30 ? 'dias-alerta' : (dias >= 15 ? 'dias-atencion' : '');
                 html += '<div class="caso-antiguo ' + urgentClass + '">' +
                     '<span class="caso-antiguo-id">#' + c.id + '</span> ' +
                     '<span class="caso-antiguo-titulo">' + esc(c.titulo || 'Sin titulo') + '</span> ' +
                     '<span class="badge ' + (statusBadges[c.estado] || 'badge-info') + '">' + esc(statusLabels[c.estado] || c.estado) + '</span> ' +
-                    '<span class="caso-antiguo-dias">' + dias + ' días</span>' +
+                    '<span class="caso-antiguo-dias ' + diasClass + '">' + dias + ' días</span>' +
                     '<span class="caso-antiguo-abogado">' + esc(c.abogado_nombre || '') + '</span></div>';
             });
             casosAntiguosList.innerHTML = html;
@@ -1126,6 +1127,55 @@
             });
         }
 
+        /* ── Settings / Password modal ── */
+        var modalSettings = document.getElementById('modalSettings');
+        var btnSettings = document.getElementById('btnSettings');
+        if (btnSettings && modalSettings) {
+            btnSettings.addEventListener('click', function() {
+                modalSettings.style.display = 'flex';
+                document.getElementById('msgSettings').style.display = 'none';
+                document.getElementById('formChangePassword').reset();
+            });
+            document.getElementById('modalSettingsCloseBtn').addEventListener('click', function() { modalSettings.style.display = 'none'; });
+            modalSettings.addEventListener('click', function(e) { if (e.target === modalSettings) modalSettings.style.display = 'none'; });
+        }
+
+        var formChangePassword = document.getElementById('formChangePassword');
+        if (formChangePassword) {
+            formChangePassword.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var current = document.getElementById('settingsCurrentPassword').value;
+                var newPass = document.getElementById('settingsNewPassword').value;
+                var confirmPass = document.getElementById('settingsConfirmPassword').value;
+                var msg = document.getElementById('msgSettings');
+                var btn = formChangePassword.querySelector('button[type="submit"]');
+
+                if (newPass !== confirmPass) {
+                    showFormMsg(msg, 'Las contrasenas no coinciden.', 'error');
+                    return;
+                }
+                if (newPass.length < 4) {
+                    showFormMsg(msg, 'La nueva contrasena debe tener al menos 4 caracteres.', 'error');
+                    return;
+                }
+
+                showLoading(btn);
+                msg.style.display = 'none';
+                api('POST', basePath + 'api/cambiar-password', {
+                    current_password: current,
+                    new_password: newPass
+                }, function(err, res) {
+                    hideLoading(btn);
+                    if (res && res.success) {
+                        showFormMsg(msg, res.message || 'Contrasena actualizada.', 'success');
+                        setTimeout(function() { modalSettings.style.display = 'none'; }, 1500);
+                    } else {
+                        showFormMsg(msg, res ? res.message : 'Error de conexion.', 'error');
+                    }
+                });
+            });
+        }
+
         /* ── Detail modal ── */
         var modalDetail = document.getElementById('modalDetailCase');
         if (modalDetail) {
@@ -1136,7 +1186,7 @@
         /* ── Global Escape key for all modals ── */
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                [modalClose, modalEdit, modalDetail, modalStatus].forEach(function(m) {
+                [modalClose, modalEdit, modalDetail, modalStatus, modalSettings].forEach(function(m) {
                     if (m && m.style.display !== 'none' && m.style.display !== '') m.style.display = 'none';
                 });
             }

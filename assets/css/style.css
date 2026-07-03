@@ -1183,11 +1183,10 @@ p { margin-bottom: 1rem; color: var(--text-secondary); line-height: 1.7; }
     box-shadow: 0 0 0 2px var(--primary-light);
 }
 
-.timeline-item.status_change .timeline-marker { background: var(--info); box-shadow: 0 0 0 2px var(--info); }
-.timeline-item.comment .timeline-marker { background: var(--secondary); box-shadow: 0 0 0 2px var(--secondary); }
-.timeline-item.created .timeline-marker { background: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
-.timeline-item.closed .timeline-marker { background: var(--warning); box-shadow: 0 0 0 2px var(--warning); }
-.timeline-item.reopened .timeline-marker { background: var(--danger); box-shadow: 0 0 0 2px var(--danger); }
+.timeline-item.comentario .timeline-marker { background: var(--secondary); box-shadow: 0 0 0 2px var(--secondary); }
+.timeline-item.cambio_estado .timeline-marker { background: var(--info); box-shadow: 0 0 0 2px var(--info); }
+.timeline-item.creado .timeline-marker { background: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
+.timeline-item.actualizado .timeline-marker { background: var(--warning); box-shadow: 0 0 0 2px var(--warning); }
 
 .timeline-content {
     background: var(--bg-card);
@@ -1347,6 +1346,20 @@ p { margin-bottom: 1rem; color: var(--text-secondary); line-height: 1.7; }
 .caso-antiguo-dias.dias-atencion {
     background: rgba(245,158,11,0.12);
     color: var(--warning);
+}
+
+.caso-antiguo.urgent-case {
+    border-left: 3px solid var(--danger);
+    background: rgba(239,68,68,0.04);
+    border-radius: 4px;
+    padding-left: 0.5rem;
+}
+
+.caso-antiguo.warning-case {
+    border-left: 3px solid var(--warning);
+    background: rgba(245,158,11,0.04);
+    border-radius: 4px;
+    padding-left: 0.5rem;
 }
 
 .caso-antiguo-abogado {

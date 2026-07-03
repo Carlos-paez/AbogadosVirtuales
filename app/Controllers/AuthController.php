@@ -51,4 +51,31 @@ class AuthController extends Controller
         header('Location: ' . $router->getBasePath() . '/');
         exit;
     }
+
+    public function apiChangePassword(): void
+    {
+        $this->requireAuth();
+        $input = $this->getJsonInput();
+        $current = $input['current_password'] ?? '';
+        $newPassword = $input['new_password'] ?? '';
+
+        if (!$current || !$newPassword) {
+            $this->json(['success' => false, 'error' => 'Ambas contraseñas son requeridas.'], 400);
+            return;
+        }
+
+        if (strlen($newPassword) < 4) {
+            $this->json(['success' => false, 'error' => 'La nueva contraseña debe tener al menos 4 caracteres.'], 400);
+            return;
+        }
+
+        $user = \App\Models\User::findById(Auth::user()['id']);
+        if (!$user || !password_verify($current, $user['password_hash'])) {
+            $this->json(['success' => false, 'error' => 'La contraseña actual es incorrecta.'], 401);
+            return;
+        }
+
+        \App\Models\User::updatePassword($user['id'], password_hash($newPassword, PASSWORD_DEFAULT));
+        $this->json(['success' => true, 'message' => 'Contraseña actualizada exitosamente.']);
+    }
 }

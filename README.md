@@ -10,6 +10,7 @@ Aplicación web PHP para gestionar una red de abogados voluntarios que brindan o
 |------|-----------|
 | **Backend** | PHP 8.3+, SQLite, PDO |
 | **Frontend** | HTML5, CSS3 (`style.css`), JavaScript (`app.js`) |
+| **Documentación** | Manual de usuario integrado (`/manual`) + `MANUAL.md` |
 | **Arquitectura** | MVC propio (Router → Controller → Model → View) |
 | **Base de datos** | SQLite (`data/app.db`), creada y migrada automáticamente |
 | **Servidor** | PHP built-in (`php -S`) o Apache con `.htaccess` |
@@ -22,6 +23,7 @@ Aplicación web PHP para gestionar una red de abogados voluntarios que brindan o
 abogados/
 ├── index.php                    # Front controller (rutas + static bypass)
 ├── .htaccess                    # Rewrite rules para Apache
+├── MANUAL.md                    # Manual de usuario detallado
 ├── data/
 │   ├── app.db                   # Base de datos SQLite (auto-creada)
 │   └── info.md                  # Contenido de la página informativa
@@ -46,6 +48,7 @@ abogados/
 │   └── Views/
 │       ├── layout.php           # Layout global (nav, footer, title, auth condicional)
 │       ├── info.php             # Página informativa + tabla de contenidos
+│       ├── manual.php           # Manual de usuario integrado al sistema
 │       ├── registro.php         # Formulario de registro de abogados
 │       ├── login.php            # Inicio de sesión
 │       ├── reportes.php         # Reportes con búsqueda y filtros
@@ -128,6 +131,13 @@ abogados/
 - Resumen: total de abogados, por jurisdicción, por estado
 - Exportación a CSV con BOM (compatible con Excel)
 
+### Manual de Usuario (`/manual`)
+- Manual completo integrado a la interfaz de la aplicacion
+- Explica al usuario final como usar cada seccion del sistema
+- Incluye informacion sobre el proposito y creador de la aplicacion
+- Tabla de contenidos lateral con navegacion por anclas
+- Tambien disponible en formato Markdown (`MANUAL.md`)
+
 ### API REST
 
 | Método | Ruta | Auth | Descripción |
@@ -184,10 +194,10 @@ El archivo `data/app.db` se crea solo si no existe. Si ya existe con columnas fa
 
 ```bash
 # Requisito: PHP 8.0+ con extensiones pdo_sqlite, mbstring
-php -S localhost:8000 -t D:\DEV\abogados D:\DEV\abogados\index.php
+php -S localhost:8000 -t /ruta/al/proyecto /ruta/al/proyecto/index.php
 ```
 
-O con Apache: apuntar el DocumentRoot a `D:\DEV\abogados` y el `.htaccess` incluido se encarga de las rewrites.
+O con Apache: apuntar el DocumentRoot a la carpeta del proyecto y el `.htaccess` incluido se encarga de las rewrites.
 
 ### Primer uso
 
@@ -222,6 +232,7 @@ O con Apache: apuntar el DocumentRoot a `D:\DEV\abogados` y el `.htaccess` inclu
 | `/registro` | Formulario de registro de abogados |
 | `/solicitudes` | Solicitud de apoyo legal |
 | `/login` | Inicio de sesión |
+| `/manual` | Manual de usuario integrado |
 | `/crm` | CRM completo con dashboard, estadísticas, timeline, comentarios |
 | `/reportes` | Reportes de abogados con filtros y exportación |
 

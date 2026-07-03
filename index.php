@@ -17,6 +17,7 @@ $GLOBALS['router'] = $router;
 $router->get('/', 'HomeController@info');
 $router->get('/info', 'HomeController@info');
 $router->get('/registro', 'LawyerController@register');
+$router->get('/manual', 'HomeController@manual');
 $router->get('/solicitudes', 'RequestController@form');
 $router->get('/reportes', 'ReportController@index');
 $router->get('/crm', 'CrmController@index');
@@ -44,5 +45,6 @@ $router->get('/api/exportar-casos', 'CrmController@apiExport');
 $router->post('/api/cambio-estado', 'CrmController@apiChangeStatus');
 $router->post('/api/agregar-comentario', 'CrmController@apiAddComment');
 $router->get('/api/actividades', 'CrmController@apiActivities');
+$router->post('/api/cambiar-password', 'AuthController@apiChangePassword');
 
 $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);

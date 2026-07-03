@@ -15,6 +15,7 @@
             <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
             <ul class="nav-menu" id="navMenu">
                 <li><a href="<?= $basePath ?>/info">Informacion</a></li>
+                <li><a href="<?= $basePath ?>/manual">Manual</a></li>
                 <li><a href="<?= $basePath ?>/registro">Registro Abogados</a></li>
                 <li><a href="<?= $basePath ?>/solicitudes">Solicitar Ayuda</a></li>
                 <?php if (!empty($isLoggedIn)): ?>
