@@ -33,6 +33,7 @@ abstract class Model
                 telefono TEXT,
                 tipo_documento TEXT DEFAULT 'V',
                 numero_documento TEXT,
+                pais TEXT DEFAULT 'Venezuela',
                 estado TEXT NOT NULL,
                 ciudad TEXT,
                 jurisdiccion TEXT NOT NULL,
@@ -106,6 +107,9 @@ abstract class Model
         }
         if (!in_array('anios_experiencia', $existing)) {
             self::$db->exec("ALTER TABLE lawyers ADD COLUMN anios_experiencia INTEGER DEFAULT 0");
+        }
+        if (!in_array('pais', $existing)) {
+            self::$db->exec("ALTER TABLE lawyers ADD COLUMN pais TEXT DEFAULT 'Venezuela'");
         }
 
         $existing = self::$db->query("PRAGMA table_info(affected_people)")->fetchAll(PDO::FETCH_COLUMN, 1);

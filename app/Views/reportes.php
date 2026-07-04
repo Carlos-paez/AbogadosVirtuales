@@ -8,6 +8,14 @@
             <input type="text" id="searchText" placeholder="Escribe para buscar..." style="min-width:200px;">
         </div>
         <div class="form-group">
+            <label for="filterPais">Filtrar por Pais</label>
+            <select id="filterPais">
+                <option value="">Todos los paises</option>
+                <option value="Venezuela">Venezuela</option>
+                <option value="Otro">Otro pais</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label for="filterEstado">Filtrar por Estado</label>
             <select id="filterEstado">
                 <option value="">Todos los estados</option>

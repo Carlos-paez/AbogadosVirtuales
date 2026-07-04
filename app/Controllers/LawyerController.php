@@ -26,6 +26,7 @@ class LawyerController extends Controller
         $telefono = trim($input['telefono'] ?? '');
         $tipoDocumento = trim($input['tipo_documento'] ?? 'V');
         $numeroDocumento = trim($input['numero_documento'] ?? '');
+        $pais = trim($input['pais'] ?? 'Venezuela');
         $estado = trim($input['estado'] ?? '');
         $ciudad = trim($input['ciudad'] ?? '');
         $jurisdiccion = trim($input['jurisdiccion'] ?? '');
@@ -35,6 +36,7 @@ class LawyerController extends Controller
         $fieldErrors = [];
         if ($nombre === '') $fieldErrors['nombre'] = 'El nombre es obligatorio.';
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) $fieldErrors['email'] = 'Email válido es obligatorio.';
+        if ($pais === '') $fieldErrors['pais'] = 'El país es obligatorio.';
         if ($estado === '') $fieldErrors['estado'] = 'El estado es obligatorio.';
         if ($jurisdiccion === '') $fieldErrors['jurisdiccion'] = 'La jurisdicción es obligatoria.';
 
@@ -47,7 +49,7 @@ class LawyerController extends Controller
             $result = Lawyer::create([
                 'nombre' => $nombre, 'email' => $email, 'telefono' => $telefono,
                 'tipo_documento' => $tipoDocumento, 'numero_documento' => $numeroDocumento,
-                'estado' => $estado, 'ciudad' => $ciudad,
+                'pais' => $pais, 'estado' => $estado, 'ciudad' => $ciudad,
                 'jurisdiccion' => $jurisdiccion, 'especialidad' => $especialidad,
                 'anios_experiencia' => $aniosExperiencia
             ]);
@@ -66,7 +68,8 @@ class LawyerController extends Controller
         $this->requireAuth();
         $estado = $_GET['estado'] ?? null;
         $jurisdiccion = $_GET['jurisdiccion'] ?? null;
-        $this->json(['success' => true, 'data' => Lawyer::all($estado, $jurisdiccion)]);
+        $pais = $_GET['pais'] ?? null;
+        $this->json(['success' => true, 'data' => Lawyer::all($estado, $jurisdiccion, $pais)]);
     }
 
     public function apiSearch(): void
@@ -85,7 +88,8 @@ class LawyerController extends Controller
         $this->requireAuth();
         $estado = $_GET['estado'] ?? null;
         $jurisdiccion = $_GET['jurisdiccion'] ?? null;
-        $csv = Lawyer::exportCsv($estado, $jurisdiccion);
+        $pais = $_GET['pais'] ?? null;
+        $csv = Lawyer::exportCsv($estado, $jurisdiccion, $pais);
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="abogados.csv"');
         echo "\xEF\xBB\xBF" . $csv;

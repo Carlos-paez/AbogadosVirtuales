@@ -44,10 +44,26 @@
         </div>
         <div class="form-row">
             <div class="form-group">
+                <label for="pais">País *</label>
+                <select id="pais" name="pais" required data-validate="required">
+                    <option value="Venezuela">Venezuela</option>
+                    <option value="Otro">Otro país</option>
+                </select>
+                <span class="error-msg"></span>
+            </div>
+            <div class="form-group" id="paisOtroGroup" style="display:none;">
+                <label for="pais_otro">Nombre del país *</label>
+                <input type="text" id="pais_otro" name="pais_otro" data-validate="required">
+                <span class="error-msg"></span>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group" id="estadoGroup">
                 <label for="estado">Estado / Provincia *</label>
                 <select id="estado" name="estado" required data-validate="required">
                     <option value="">Seleccione un estado</option>
                 </select>
+                <input type="text" id="estadoInput" name="estadoInput" style="display:none;" data-validate="required" placeholder="Escriba su estado / provincia">
                 <span class="error-msg"></span>
             </div>
             <div class="form-group">

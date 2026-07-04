@@ -68,6 +68,36 @@
         });
     });
 
+    /* ── Country toggle ── */
+    document.querySelectorAll('select[id="pais"]').forEach(function(sel) {
+        function togglePais() {
+            var paisOtroGroup = document.getElementById('paisOtroGroup');
+            var estadoSelect = document.getElementById('estado');
+            var estadoInput = document.getElementById('estadoInput');
+            if (!estadoSelect || !estadoInput) return;
+            if (sel.value === 'Otro') {
+                if (paisOtroGroup) paisOtroGroup.style.display = 'block';
+                estadoSelect.style.display = 'none';
+                estadoSelect.required = false;
+                estadoSelect.removeAttribute('data-validate');
+                estadoInput.style.display = 'block';
+                estadoInput.required = true;
+                estadoInput.setAttribute('data-validate', 'required');
+            } else {
+                if (paisOtroGroup) paisOtroGroup.style.display = 'none';
+                estadoSelect.style.display = 'block';
+                estadoSelect.required = true;
+                estadoSelect.setAttribute('data-validate', 'required');
+                estadoInput.style.display = 'none';
+                estadoInput.required = false;
+                estadoInput.removeAttribute('data-validate');
+                estadoInput.value = '';
+            }
+        }
+        sel.addEventListener('change', togglePais);
+        togglePais();
+    });
+
     /* ── Toast system ── */
     var toastContainer = document.createElement('div');
     toastContainer.className = 'toast-container';
@@ -298,6 +328,9 @@
             showLoading(btn);
             msg.style.display = 'none';
 
+            var paisSel = document.getElementById('pais');
+            var pais = paisSel.value === 'Otro' ? document.getElementById('pais_otro').value : paisSel.value;
+            var estadoEl = document.getElementById('estado').style.display !== 'none' ? document.getElementById('estado') : document.getElementById('estadoInput');
             var data = {
                 nombre: document.getElementById('nombre').value,
                 email: document.getElementById('email').value,
@@ -305,7 +338,8 @@
                 tipo_documento: document.getElementById('tipo_documento').value,
                 numero_documento: document.getElementById('numero_documento').value,
                 anios_experiencia: parseInt(document.getElementById('anios_experiencia').value, 10) || 0,
-                estado: document.getElementById('estado').value,
+                pais: pais,
+                estado: estadoEl.value,
                 ciudad: document.getElementById('ciudad').value,
                 jurisdiccion: document.getElementById('jurisdiccion').value,
                 especialidad: document.getElementById('especialidad').value
@@ -441,6 +475,7 @@
         if (!container) return;
 
         var searchInput = document.getElementById('searchText');
+        var filterPais = document.getElementById('filterPais');
         var filterEstado = document.getElementById('filterEstado');
         var filterJurisdiccion = document.getElementById('filterJurisdiccion');
         var btnFiltrar = document.getElementById('btnFiltrar');
@@ -455,6 +490,8 @@
             var params = [];
             var q = searchInput ? searchInput.value.trim() : '';
             if (q) params.push('q=' + encodeURIComponent(q));
+            var p = filterPais ? filterPais.value : '';
+            if (p) params.push('pais=' + encodeURIComponent(p));
             var est = filterEstado ? filterEstado.value : '';
             if (est) params.push('estado=' + encodeURIComponent(est));
             var jur = filterJurisdiccion ? filterJurisdiccion.value : '';
@@ -477,7 +514,7 @@
 
             var grouped = {};
             data.forEach(function(a) {
-                var key = a.estado || 'Sin estado';
+                var key = (a.pais && a.pais !== 'Venezuela' ? a.pais + ' - ' : '') + (a.estado || 'Sin estado');
                 if (!grouped[key]) grouped[key] = [];
                 grouped[key].push(a);
             });
@@ -490,6 +527,7 @@
                         '<h3>' + esc(a.nombre) + '</h3>' +
                         '<p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom;margin-right:4px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>' + esc(a.email) + '</p>' +
                         (a.telefono ? '<p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom;margin-right:4px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>' + esc(a.telefono) + '</p>' : '') +
+                        (a.pais && a.pais !== 'Venezuela' ? '<p><strong>Pais:</strong> ' + esc(a.pais) + '</p>' : '') +
                         (a.especialidad ? '<p><strong>Especialidad:</strong> ' + esc(a.especialidad) + '</p>' : '') +
                         '<p style="margin-top:0.5rem;"><span class="badge">' + esc(a.jurisdiccion) + '</span>' +
                         (a.anios_experiencia > 0 ? ' <span class="badge badge-info">' + a.anios_experiencia + ' años</span>' : '') + '</p>' +
@@ -514,6 +552,7 @@
         if (btnFiltrar) btnFiltrar.addEventListener('click', loadData);
         if (btnLimpiar) btnLimpiar.addEventListener('click', function() {
             if (searchInput) searchInput.value = '';
+            if (filterPais) filterPais.value = '';
             if (filterEstado) filterEstado.value = '';
             if (filterJurisdiccion) filterJurisdiccion.value = '';
             loadData();
