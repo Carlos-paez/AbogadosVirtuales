@@ -23,6 +23,12 @@ class AuthController extends Controller
         $input = $this->getJsonInput();
         $username = trim($input['username'] ?? '');
         $password = $input['password'] ?? '';
+        $csrfToken = $input['_csrf'] ?? '';
+
+        if (!Auth::validateCsrfToken($csrfToken)) {
+            $this->json(['success' => false, 'error' => 'Solicitud inválida. Recargue la página e intente de nuevo.'], 403);
+            return;
+        }
 
         if (!$username || !$password) {
             $this->json(['success' => false, 'error' => 'Usuario y contraseña requeridos.'], 400);
@@ -32,15 +38,26 @@ class AuthController extends Controller
         if (User::count() === 0) {
             User::create([
                 'username' => 'admin',
-                'password_hash' => password_hash('admin', PASSWORD_DEFAULT),
+                'password_hash' => password_hash('admin', PASSWORD_BCRYPT),
                 'nombre' => 'Administrador'
             ]);
+        }
+
+        if (Auth::isLockedOut()) {
+            $remaining = Auth::getRemainingAttempts();
+            $this->json(['success' => false, 'error' => "Demasiados intentos. Espere antes de intentar de nuevo."], 429);
+            return;
         }
 
         if (Auth::login($username, $password)) {
             $this->json(['success' => true, 'message' => 'Inicio de sesión exitoso.']);
         } else {
-            $this->json(['success' => false, 'error' => 'Usuario o contraseña incorrectos.'], 401);
+            $remaining = Auth::getRemainingAttempts();
+            $msg = 'Usuario o contraseña incorrectos.';
+            if ($remaining > 0) {
+                $msg .= " Intentos restantes: $remaining.";
+            }
+            $this->json(['success' => false, 'error' => $msg], 401);
         }
     }
 
@@ -50,5 +67,32 @@ class AuthController extends Controller
         $router = $GLOBALS['router'];
         header('Location: ' . $router->getBasePath() . '/');
         exit;
+    }
+
+    public function apiChangePassword(): void
+    {
+        $this->requireAuth();
+        $input = $this->getJsonInput();
+        $current = $input['current_password'] ?? '';
+        $newPassword = $input['new_password'] ?? '';
+
+        if (!$current || !$newPassword) {
+            $this->json(['success' => false, 'error' => 'Ambas contraseñas son requeridas.'], 400);
+            return;
+        }
+
+        if (strlen($newPassword) < 4) {
+            $this->json(['success' => false, 'error' => 'La nueva contraseña debe tener al menos 4 caracteres.'], 400);
+            return;
+        }
+
+        $user = \App\Models\User::findById(Auth::user()['id']);
+        if (!$user || !password_verify($current, $user['password_hash'])) {
+            $this->json(['success' => false, 'error' => 'La contraseña actual es incorrecta.'], 401);
+            return;
+        }
+
+        \App\Models\User::updatePassword($user['id'], password_hash($newPassword, PASSWORD_BCRYPT));
+        $this->json(['success' => true, 'message' => 'Contraseña actualizada exitosamente.']);
     }
 }

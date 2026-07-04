@@ -29,4 +29,9 @@ class HomeController extends Controller
 
         $this->view('info', ['title' => 'Información - Crisis en Venezuela', 'infoHtml' => $html]);
     }
+
+    public function manual(): void
+    {
+        $this->view('manual', ['title' => 'Manual de Usuario']);
+    }
 }

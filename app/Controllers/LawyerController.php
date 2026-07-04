@@ -83,6 +83,78 @@ class LawyerController extends Controller
         $this->json(['success' => true, 'data' => Lawyer::search($query)]);
     }
 
+    public function apiUpdate(): void
+    {
+        $this->requireAuth();
+        $input = $this->getJsonInput();
+        $id = (int)($input['id'] ?? 0);
+
+        if (!$id) {
+            $this->json(['success' => false, 'error' => 'ID de abogado requerido.'], 400);
+            return;
+        }
+
+        $lawyer = Lawyer::findById($id);
+        if (!$lawyer) {
+            $this->json(['success' => false, 'error' => 'Abogado no encontrado.'], 404);
+            return;
+        }
+
+        $data = [];
+        if (isset($input['nombre'])) $data['nombre'] = trim($input['nombre']);
+        if (isset($input['email'])) $data['email'] = trim($input['email']);
+        if (isset($input['telefono'])) $data['telefono'] = trim($input['telefono']);
+        if (isset($input['tipo_documento'])) $data['tipo_documento'] = trim($input['tipo_documento']);
+        if (isset($input['numero_documento'])) $data['numero_documento'] = trim($input['numero_documento']);
+        if (isset($input['estado'])) $data['estado'] = trim($input['estado']);
+        if (isset($input['ciudad'])) $data['ciudad'] = trim($input['ciudad']);
+        if (isset($input['jurisdiccion'])) $data['jurisdiccion'] = trim($input['jurisdiccion']);
+        if (isset($input['especialidad'])) $data['especialidad'] = trim($input['especialidad']);
+        if (isset($input['anios_experiencia'])) $data['anios_experiencia'] = (int)$input['anios_experiencia'];
+
+        if (isset($data['nombre']) && $data['nombre'] === '') {
+            $this->json(['success' => false, 'error' => 'El nombre es obligatorio.'], 400);
+            return;
+        }
+        if (isset($data['email']) && ($data['email'] === '' || !filter_var($data['email'], FILTER_VALIDATE_EMAIL))) {
+            $this->json(['success' => false, 'error' => 'Email válido es obligatorio.'], 400);
+            return;
+        }
+
+        try {
+            Lawyer::update($id, $data);
+            $updated = Lawyer::findById($id);
+            $this->json(['success' => true, 'data' => $updated]);
+        } catch (PDOException $e) {
+            if (str_contains($e->getMessage(), 'UNIQUE')) {
+                $this->json(['success' => false, 'error' => 'Ya existe otro abogado con ese email.'], 409);
+            } else {
+                $this->json(['success' => false, 'error' => 'Error interno del servidor.'], 500);
+            }
+        }
+    }
+
+    public function apiDelete(): void
+    {
+        $this->requireAuth();
+        $input = $this->getJsonInput();
+        $id = (int)($input['id'] ?? 0);
+
+        if (!$id) {
+            $this->json(['success' => false, 'error' => 'ID de abogado requerido.'], 400);
+            return;
+        }
+
+        $lawyer = Lawyer::findById($id);
+        if (!$lawyer) {
+            $this->json(['success' => false, 'error' => 'Abogado no encontrado.'], 404);
+            return;
+        }
+
+        Lawyer::delete($id);
+        $this->json(['success' => true, 'message' => 'Abogado eliminado correctamente.']);
+    }
+
     public function apiExport(): void
     {
         $this->requireAuth();

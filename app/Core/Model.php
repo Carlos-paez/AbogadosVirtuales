@@ -62,7 +62,7 @@ abstract class Model
                 titulo TEXT,
                 descripcion TEXT,
                 prioridad TEXT DEFAULT 'media',
-                estado TEXT DEFAULT 'abierto',
+                estado TEXT DEFAULT 'pendiente',
                 assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 resolved_at DATETIME,
                 notas TEXT,
@@ -127,5 +127,7 @@ abstract class Model
         if (!in_array('observaciones', $existing)) {
             self::$db->exec("ALTER TABLE cases ADD COLUMN observaciones TEXT");
         }
+
+        self::$db->exec("UPDATE cases SET estado = 'pendiente' WHERE estado = 'abierto'");
     }
 }

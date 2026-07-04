@@ -51,6 +51,39 @@ class Lawyer extends Model
         return $stmt->fetchAll();
     }
 
+    public static function findById(int $id): ?array
+    {
+        $stmt = self::db()->prepare("SELECT * FROM lawyers WHERE id = ?");
+        $stmt->execute([$id]);
+        $lawyer = $stmt->fetch();
+        return $lawyer ?: null;
+    }
+
+    public static function update(int $id, array $data): bool
+    {
+        $db = self::db();
+        $fields = [];
+        $params = [];
+        foreach (['nombre', 'email', 'telefono', 'tipo_documento', 'numero_documento', 'estado', 'ciudad', 'jurisdiccion', 'especialidad', 'anios_experiencia'] as $f) {
+            if (array_key_exists($f, $data)) {
+                $fields[] = "$f = ?";
+                $params[] = $data[$f];
+            }
+        }
+        if (empty($fields)) {
+            return false;
+        }
+        $params[] = $id;
+        $stmt = $db->prepare("UPDATE lawyers SET " . implode(', ', $fields) . " WHERE id = ?");
+        return $stmt->execute($params);
+    }
+
+    public static function delete(int $id): bool
+    {
+        $stmt = self::db()->prepare("DELETE FROM lawyers WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
+
     public static function search(string $query): array
     {
         $db = self::db();

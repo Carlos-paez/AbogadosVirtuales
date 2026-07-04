@@ -9,6 +9,7 @@ abstract class Controller
         Auth::init();
         $data['isLoggedIn'] = Auth::isLoggedIn();
         $data['currentUser'] = Auth::user();
+        $data['csrf_token'] = Auth::generateCsrfToken();
 
         $router = $GLOBALS['router'] ?? null;
         $basePath = $router ? $router->getBasePath() : '';

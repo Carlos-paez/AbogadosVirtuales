@@ -1,6 +1,11 @@
 <div class="crm-page">
-    <h1>CRM - Gestion de Atencion al Cliente</h1>
-    <p class="lead">Asigna, da seguimiento y genera reportes de los casos atendidos por abogados voluntarios.</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+        <div>
+            <h1>CRM - Gestion de Atencion al Cliente</h1>
+            <p class="lead">Asigna, da seguimiento y genera reportes de los casos atendidos por abogados voluntarios.</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btnSettings" style="white-space:nowrap;">&#9881; Ajustes</button>
+    </div>
 
     <div class="crm-stats" id="crmStats">
         <div class="stat-card"><h3>Total Abogados</h3><p id="statAbogados">0</p></div>
@@ -255,5 +260,33 @@
     <div class="modal-content modal-lg">
         <span class="modal-close" id="modalDetailCloseBtn">&times;</span>
         <div id="detailCaseContent"><p>Cargando...</p></div>
+    </div>
+</div>
+
+<div id="modalSettings" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="modal-close" id="modalSettingsCloseBtn">&times;</span>
+        <h3>Configuracion de Usuario</h3>
+        <form id="formChangePassword" class="app-form" style="box-shadow:none;padding:0;margin-top:1rem;">
+            <div class="form-group">
+                <label for="settingsCurrentPassword">Contrasena actual</label>
+                <input type="password" id="settingsCurrentPassword" required>
+            </div>
+            <div class="form-group">
+                <label for="settingsNewPassword">Nueva contrasena</label>
+                <input type="password" id="settingsNewPassword" required minlength="4">
+            </div>
+            <div class="form-group">
+                <label for="settingsConfirmPassword">Confirmar nueva contrasena</label>
+                <input type="password" id="settingsConfirmPassword" required>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">Cambiar Contrasena</span>
+                    <span class="spinner" style="display:none;"></span>
+                </button>
+            </div>
+            <div id="msgSettings" class="form-message" style="display:none;"></div>
+        </form>
     </div>
 </div>
