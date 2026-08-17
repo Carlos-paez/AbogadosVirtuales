@@ -10,19 +10,20 @@ class CrmController extends Controller
 {
     public function index(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $this->view('crm', ['title' => 'CRM - Gestión de Casos']);
     }
 
     public function apiAssign(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $input = $this->getJsonInput();
         $person_id = (int)($input['person_id'] ?? 0);
         $lawyer_id = (int)($input['lawyer_id'] ?? 0);
         $titulo = trim($input['titulo'] ?? '');
         $descripcion = trim($input['descripcion'] ?? '');
         $prioridad = trim($input['prioridad'] ?? 'media');
+        $areaId = (int)($input['area_id'] ?? 0);
 
         if (!$person_id || !$lawyer_id) {
             $this->json(['success' => false, 'error' => 'Debe seleccionar una persona y un abogado.'], 400);
@@ -32,7 +33,9 @@ class CrmController extends Controller
         try {
             $result = LegalCase::create([
                 'lawyer_id' => $lawyer_id, 'person_id' => $person_id,
-                'titulo' => $titulo, 'descripcion' => $descripcion, 'prioridad' => $prioridad
+                'titulo' => $titulo, 'descripcion' => $descripcion,
+                'prioridad' => $prioridad, 'area_id' => $areaId ?: null,
+                'usuario_creador_id' => \App\Core\Auth::user()['id'],
             ]);
             $this->json($result);
         } catch (PDOException $e) {
@@ -46,7 +49,7 @@ class CrmController extends Controller
 
     public function apiGet(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $id = (int)($_GET['id'] ?? 0);
         if (!$id) {
             $this->json(['success' => false, 'error' => 'ID no válido.'], 400);
@@ -63,7 +66,7 @@ class CrmController extends Controller
 
     public function apiUpdate(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
         if (!$id) {
@@ -89,7 +92,7 @@ class CrmController extends Controller
 
     public function apiChangeStatus(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
         $newStatus = trim($input['estado'] ?? '');
@@ -110,7 +113,7 @@ class CrmController extends Controller
 
     public function apiAddComment(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
         $comment = trim($input['comentario'] ?? '');
@@ -126,7 +129,7 @@ class CrmController extends Controller
 
     public function apiActivities(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $id = (int)($_GET['id'] ?? 0);
         if (!$id) {
             $this->json(['success' => false, 'error' => 'ID no válido.'], 400);
@@ -137,7 +140,7 @@ class CrmController extends Controller
 
     public function apiClose(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
         $observaciones = trim($input['observaciones'] ?? '');
@@ -153,7 +156,7 @@ class CrmController extends Controller
 
     public function apiReopen(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
 
@@ -172,7 +175,7 @@ class CrmController extends Controller
 
     public function apiDelete(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
 
@@ -187,7 +190,7 @@ class CrmController extends Controller
 
     public function apiList(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $estado = $_GET['estado'] ?? null;
         $search = $_GET['q'] ?? null;
         $prioridad = $_GET['prioridad'] ?? null;
@@ -196,13 +199,13 @@ class CrmController extends Controller
 
     public function apiStats(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $this->json(['success' => true, 'data' => LegalCase::stats()]);
     }
 
     public function apiExport(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $estado = $_GET['estado'] ?? null;
         $prioridad = $_GET['prioridad'] ?? null;
         $csv = LegalCase::exportCsv($estado, $prioridad);

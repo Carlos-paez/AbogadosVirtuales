@@ -16,17 +16,38 @@ $GLOBALS['router'] = $router;
 
 $router->get('/', 'HomeController@info');
 $router->get('/info', 'HomeController@info');
-$router->get('/registro', 'LawyerController@register');
 $router->get('/manual', 'HomeController@manual');
-$router->get('/solicitudes', 'RequestController@form');
-$router->get('/reportes', 'ReportController@index');
-$router->get('/crm', 'CrmController@index');
+
+$router->get('/registro', 'AuthController@registerForm');
+$router->post('/api/registro', 'AuthController@apiRegister');
+$router->get('/api/areas', 'AuthController@apiGetAreas');
 
 $router->get('/login', 'AuthController@loginForm');
 $router->post('/api/login', 'AuthController@login');
 $router->get('/logout', 'AuthController@logout');
 
-$router->post('/api/registro-abogado', 'LawyerController@apiRegister');
+$router->get('/panel', 'PanelController@index');
+$router->get('/api/casos-disponibles', 'PanelController@apiCasosDisponibles');
+$router->get('/api/mis-casos', 'PanelController@apiMisCasos');
+$router->post('/api/seleccionar-caso', 'PanelController@apiSeleccionarCaso');
+$router->get('/api/perfil', 'PanelController@apiPerfil');
+
+$router->get('/admin', 'AdminController@index');
+$router->get('/api/admin/usuarios', 'AdminController@apiUsuarios');
+$router->post('/api/admin/actualizar-usuario', 'AdminController@apiActualizarUsuario');
+$router->post('/api/admin/eliminar-usuario', 'AdminController@apiEliminarUsuario');
+$router->get('/api/admin/areas', 'AdminController@apiAreas');
+$router->post('/api/admin/crear-area', 'AdminController@apiCrearArea');
+$router->post('/api/admin/actualizar-area', 'AdminController@apiActualizarArea');
+$router->post('/api/admin/eliminar-area', 'AdminController@apiEliminarArea');
+$router->post('/api/admin/crear-caso', 'AdminController@apiCrearCaso');
+$router->get('/api/admin/asignaciones', 'AdminController@apiAsignaciones');
+$router->get('/api/admin/estadisticas', 'AdminController@apiEstadisticas');
+
+$router->get('/solicitudes', 'RequestController@form');
+$router->get('/reportes', 'ReportController@index');
+$router->get('/crm', 'CrmController@index');
+
 $router->post('/api/registro-afectado', 'RequestController@apiRegister');
 $router->post('/api/asignar-caso', 'CrmController@apiAssign');
 $router->post('/api/cerrar-caso', 'CrmController@apiClose');
@@ -34,7 +55,6 @@ $router->post('/api/reabrir-caso', 'CrmController@apiReopen');
 $router->post('/api/actualizar-caso', 'CrmController@apiUpdate');
 $router->post('/api/eliminar-caso', 'CrmController@apiDelete');
 $router->get('/api/obtener-caso', 'CrmController@apiGet');
-$router->get('/api/obtener-abogados', 'LawyerController@apiList');
 $router->get('/api/obtener-personas', 'RequestController@apiList');
 $router->get('/api/obtener-casos', 'CrmController@apiList');
 $router->get('/api/estadisticas', 'CrmController@apiStats');

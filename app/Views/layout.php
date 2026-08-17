@@ -14,19 +14,28 @@
             <a href="<?= $basePath ?>/" class="nav-brand">Red de Apoyo Legal</a>
             <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
             <ul class="nav-menu" id="navMenu">
-                <li><a href="<?= $basePath ?>/info">Informacion</a></li>
+                <li><a href="<?= $basePath ?>/info">Información</a></li>
                 <li><a href="<?= $basePath ?>/manual">Manual</a></li>
-                <li><a href="<?= $basePath ?>/registro">Registro Abogados</a></li>
-                <li><a href="<?= $basePath ?>/solicitudes">Solicitar Ayuda</a></li>
                 <?php if (!empty($isLoggedIn)): ?>
-                <li><a href="<?= $basePath ?>/reportes">Reportes</a></li>
-                <li><a href="<?= $basePath ?>/crm">CRM</a></li>
+                    <?php if (($currentUser['rol'] ?? '') === 'administrador'): ?>
+                    <li><a href="<?= $basePath ?>/crm">CRM</a></li>
+                    <li><a href="<?= $basePath ?>/reportes">Reportes</a></li>
+                    <li><a href="<?= $basePath ?>/admin">Admin</a></li>
+                    <?php else: ?>
+                    <li><a href="<?= $basePath ?>/panel">Mi Panel</a></li>
+                    <?php endif; ?>
+                <?php else: ?>
+                <li><a href="<?= $basePath ?>/registro">Registro</a></li>
+                <li><a href="<?= $basePath ?>/solicitudes">Solicitar Ayuda</a></li>
                 <?php endif; ?>
             </ul>
             <ul class="nav-auth">
                 <?php if (!empty($isLoggedIn)): ?>
                 <li><span class="nav-user"><?= htmlspecialchars($currentUser['nombre'] ?? '') ?></span></li>
-                <li><a href="<?= $basePath ?>/logout" class="btn btn-sm btn-outline">Cerrar Sesion</a></li>
+                <?php if (!empty($currentUser['credencial'])): ?>
+                <li><span class="nav-credencial"><?= htmlspecialchars($currentUser['credencial']) ?></span></li>
+                <?php endif; ?>
+                <li><a href="<?= $basePath ?>/logout" class="btn btn-sm btn-outline">Cerrar Sesión</a></li>
                 <?php else: ?>
                 <li><a href="<?= $basePath ?>/login" class="btn btn-sm btn-primary">Ingresar</a></li>
                 <?php endif; ?>

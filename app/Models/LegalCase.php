@@ -11,12 +11,13 @@ class LegalCase extends Model
     public static function create(array $data): array
     {
         $db = self::db();
-        $stmt = $db->prepare("INSERT INTO cases (lawyer_id, person_id, titulo, descripcion, prioridad, estado) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $db->prepare("INSERT INTO cases (lawyer_id, person_id, titulo, descripcion, prioridad, estado, area_id, usuario_creador_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $estado = $data['estado'] ?? 'pendiente';
         $stmt->execute([
-            $data['lawyer_id'], $data['person_id'],
+            $data['lawyer_id'] ?? null, $data['person_id'],
             $data['titulo'] ?? '', $data['descripcion'] ?? '',
-            $data['prioridad'] ?? 'media', $estado
+            $data['prioridad'] ?? 'media', $estado,
+            $data['area_id'] ?? null, $data['usuario_creador_id'] ?? null
         ]);
         $id = $db->lastInsertId();
         self::addActivity($id, 'creado', "Caso creado con prioridad {$data['prioridad']}", null, null, $estado);
@@ -31,10 +32,12 @@ class LegalCase extends Model
                    p.nombre AS persona_nombre, p.email AS persona_email, p.telefono AS persona_telefono,
                    p.estado AS persona_estado, p.ciudad AS persona_ciudad, p.tipo_ayuda, p.prioridad AS persona_prioridad,
                    p.descripcion AS persona_descripcion,
+                   a.nombre AS area_nombre,
                    CAST(julianday('now') - julianday(c.assigned_at) AS INTEGER) AS dias_abierto
             FROM cases c
             LEFT JOIN lawyers l ON c.lawyer_id = l.id
             LEFT JOIN affected_people p ON c.person_id = p.id
+            LEFT JOIN areas a ON c.area_id = a.id
             WHERE c.id = ?
         ");
         $stmt->execute([$id]);
@@ -42,7 +45,7 @@ class LegalCase extends Model
         return $row ?: null;
     }
 
-    public static function all(?string $estado = null, ?string $search = null, ?string $prioridad = null): array
+    public static function all(?string $estado = null, ?string $search = null, ?string $prioridad = null, ?int $areaId = null): array
     {
         $db = self::db();
         $where = [];
@@ -56,6 +59,10 @@ class LegalCase extends Model
             $where[] = "c.prioridad = ?";
             $params[] = $prioridad;
         }
+        if ($areaId) {
+            $where[] = "c.area_id = ?";
+            $params[] = $areaId;
+        }
         if ($search) {
             $q = "%$search%";
             $where[] = "(c.titulo LIKE ? OR l.nombre LIKE ? OR p.nombre LIKE ? OR c.descripcion LIKE ?)";
@@ -64,10 +71,12 @@ class LegalCase extends Model
 
         $sql = "SELECT c.*, l.nombre AS abogado_nombre, l.estado AS abogado_estado,
                        l.jurisdiccion, p.nombre AS persona_nombre, p.estado AS persona_estado,
+                       a.nombre AS area_nombre,
                        CAST(julianday('now') - julianday(c.assigned_at) AS INTEGER) AS dias_abierto
                 FROM cases c
                 LEFT JOIN lawyers l ON c.lawyer_id = l.id
-                LEFT JOIN affected_people p ON c.person_id = p.id";
+                LEFT JOIN affected_people p ON c.person_id = p.id
+                LEFT JOIN areas a ON c.area_id = a.id";
         if (!empty($where)) {
             $sql .= " WHERE " . implode(" AND ", $where);
         }
@@ -182,8 +191,42 @@ class LegalCase extends Model
     {
         $db = self::db();
         $db->prepare("DELETE FROM case_activities WHERE case_id = ?")->execute([$id]);
+        $db->prepare("DELETE FROM caso_asignacion WHERE caso_id = ?")->execute([$id]);
         $db->prepare("DELETE FROM cases WHERE id = ?")->execute([$id]);
         return true;
+    }
+
+    public static function availableByArea(int $areaId, ?string $search = null): array
+    {
+        $db = self::db();
+        $where = ["c.area_id = ?", "c.estado NOT IN ('cerrado', 'resuelto')"];
+        $params = [$areaId];
+
+        $where[] = "c.id NOT IN (SELECT caso_id FROM caso_asignacion WHERE estado != 'liberado')";
+
+        if ($search) {
+            $q = "%$search%";
+            $where[] = "(c.titulo LIKE ? OR c.descripcion LIKE ?)";
+            $params[] = $q;
+            $params[] = $q;
+        }
+
+        $sql = "SELECT c.*, l.nombre AS abogado_nombre, l.estado AS abogado_estado,
+                       l.jurisdiccion, p.nombre AS persona_nombre, p.estado AS persona_estado,
+                       a.nombre AS area_nombre,
+                       CAST(julianday('now') - julianday(c.assigned_at) AS INTEGER) AS dias_abierto
+                FROM cases c
+                LEFT JOIN lawyers l ON c.lawyer_id = l.id
+                LEFT JOIN affected_people p ON c.person_id = p.id
+                LEFT JOIN areas a ON c.area_id = a.id
+                WHERE " . implode(" AND ", $where) . "
+                ORDER BY 
+                    CASE c.prioridad WHEN 'urgente' THEN 0 WHEN 'alta' THEN 1 WHEN 'media' THEN 2 WHEN 'baja' THEN 3 END,
+                    c.assigned_at ASC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 
     public static function stats(): array
@@ -288,5 +331,10 @@ class LegalCase extends Model
             LIMIT $limit
         ");
         return $stmt->fetchAll();
+    }
+
+    public static function count(): int
+    {
+        return (int)self::db()->query("SELECT COUNT(*) FROM cases")->fetchColumn();
     }
 }

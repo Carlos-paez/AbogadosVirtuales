@@ -10,7 +10,9 @@ class LawyerController extends Controller
 {
     public function register(): void
     {
-        $this->view('registro', ['title' => 'Registro de Abogados']);
+        $router = $GLOBALS['router'];
+        header('Location: ' . $router->getBasePath() . '/registro');
+        exit;
     }
 
     public function apiRegister(): void
@@ -65,7 +67,7 @@ class LawyerController extends Controller
 
     public function apiList(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $estado = $_GET['estado'] ?? null;
         $jurisdiccion = $_GET['jurisdiccion'] ?? null;
         $pais = $_GET['pais'] ?? null;
@@ -74,7 +76,7 @@ class LawyerController extends Controller
 
     public function apiSearch(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $query = trim($_GET['q'] ?? '');
         if ($query === '') {
             $this->json(['success' => true, 'data' => []]);
@@ -85,7 +87,7 @@ class LawyerController extends Controller
 
     public function apiUpdate(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
 
@@ -136,7 +138,7 @@ class LawyerController extends Controller
 
     public function apiDelete(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $input = $this->getJsonInput();
         $id = (int)($input['id'] ?? 0);
 
@@ -157,7 +159,7 @@ class LawyerController extends Controller
 
     public function apiExport(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $estado = $_GET['estado'] ?? null;
         $jurisdiccion = $_GET['jurisdiccion'] ?? null;
         $pais = $_GET['pais'] ?? null;

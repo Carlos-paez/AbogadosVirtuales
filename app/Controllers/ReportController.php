@@ -8,7 +8,7 @@ class ReportController extends Controller
 {
     public function index(): void
     {
-        $this->requireAuth();
+        $this->requireRole('administrador');
         $this->view('reportes', ['title' => 'Reportes de Abogados']);
     }
 }

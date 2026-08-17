@@ -321,6 +321,24 @@
                     }
                 }
             });
+
+            var password = document.getElementById('password').value;
+            var passwordConfirm = document.getElementById('password_confirm').value;
+            if (password.length < 6) {
+                var errP = document.getElementById('password').closest('.form-group').querySelector('.error-msg');
+                if (errP) errP.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+                valid = false;
+            }
+            if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+                var errP2 = document.getElementById('password').closest('.form-group').querySelector('.error-msg');
+                if (errP2) errP2.textContent = 'Debe contener al menos una mayúscula y un número.';
+                valid = false;
+            }
+            if (password !== passwordConfirm) {
+                var errC = document.getElementById('password_confirm').closest('.form-group').querySelector('.error-msg');
+                if (errC) errC.textContent = 'Las contraseñas no coinciden.';
+                valid = false;
+            }
             if (!valid) return;
 
             var btn = document.getElementById('btnRegistro');
@@ -342,23 +360,43 @@
                 estado: estadoEl.value,
                 ciudad: document.getElementById('ciudad').value,
                 jurisdiccion: document.getElementById('jurisdiccion').value,
-                especialidad: document.getElementById('especialidad').value
+                especialidad: document.getElementById('especialidad').value,
+                area_id: parseInt(document.getElementById('area_id').value, 10) || 0,
+                password: password,
+                password_confirm: passwordConfirm
             };
 
-            api('POST', basePath + 'api/registro-abogado', data, function(err, res) {
+            api('POST', basePath + 'api/registro', data, function(err, res) {
                 hideLoading(btn);
                 if (res && res.success) {
-                    showFormMsg(msg, res.message || 'Registro exitoso.', 'success');
-                    showToast(res.message || 'Registro exitoso.', 'success');
+                    document.getElementById('credentialValue').textContent = res.credencial || '';
+                    document.getElementById('credentialArea').textContent = 'Área: ' + (res.area_nombre || '');
+                    document.getElementById('credentialModal').style.display = 'flex';
                     form.reset();
                     form.querySelectorAll('.validation-success').forEach(function(f) { f.classList.remove('validation-success'); });
                 } else {
-                    var m = res ? res.message : 'Error de conexion.';
+                    var m = res ? res.error : 'Error de conexion.';
+                    if (res && res.fieldErrors) {
+                        Object.keys(res.fieldErrors).forEach(function(field) {
+                            var el = document.getElementById(field);
+                            if (el) {
+                                var err = el.closest('.form-group').querySelector('.error-msg');
+                                if (err) err.textContent = res.fieldErrors[field];
+                                el.style.borderColor = '#ef4444';
+                            }
+                        });
+                    }
                     showFormMsg(msg, m, 'error');
                     showToast(m, 'error');
                 }
             });
         });
+
+        var credModal = document.getElementById('credentialModal');
+        if (credModal) {
+            document.getElementById('credentialModalClose').addEventListener('click', function() { credModal.style.display = 'none'; });
+            credModal.addEventListener('click', function(e) { if (e.target === credModal) credModal.style.display = 'none'; });
+        }
     })();
 
     /* ================================================================
@@ -452,13 +490,13 @@
             msg.style.display = 'none';
 
             api('POST', basePath + '/api/login', {
-                username: document.getElementById('username').value,
+                credencial: document.getElementById('credencial').value.trim(),
                 password: document.getElementById('password').value,
                 _csrf: typeof CSRF_TOKEN !== 'undefined' ? CSRF_TOKEN : ''
             }, function(err, res) {
                 hideLoading(btn);
                 if (res && res.success) {
-                    window.location.href = basePath + '/crm';
+                    window.location.href = basePath + (res.redirect || '/panel');
                 } else {
                     var m = res ? res.error : 'Error de conexion.';
                     showFormMsg(msg, m, 'error');
@@ -1477,5 +1515,470 @@
         loadCasos();
 
         function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    })();
+
+    /* ================================================================
+       PANEL PAGE (usuario)
+       ================================================================ */
+    (function() {
+        var panelPage = document.querySelector('.panel-page');
+        if (!panelPage) return;
+
+        var statusLabels = { asignado: 'Asignado', en_proceso: 'En Proceso', completado: 'Completado', liberado: 'Liberado' };
+        var prioridadBadges = { urgente: 'badge-warning', alta: 'badge-warning', media: 'badge-info', baja: 'badge-secondary' };
+        var casoEstados = { pendiente: 'Pendiente', en_proceso: 'En Proceso', derivado: 'Derivado', resuelto: 'Resuelto', cerrado: 'Cerrado' };
+
+        document.querySelectorAll('.tab-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+                btn.classList.add('active');
+                var tab = document.getElementById('tab-' + btn.getAttribute('data-tab'));
+                if (tab) tab.classList.add('active');
+            });
+        });
+
+        function loadDisponibles() {
+            var container = document.getElementById('casosDisponibles');
+            var search = document.getElementById('filterDisponiblesSearch').value.trim();
+            var url = basePath + '/api/casos-disponibles' + (search ? '?q=' + encodeURIComponent(search) : '');
+            container.innerHTML = '<div class="text-center" style="padding:2rem;"><div class="spinner" style="margin:0 auto;"></div><p>Cargando...</p></div>';
+            apiGet(url, function(err, res) {
+                if (!res || !res.success) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9888;</div><p>Error al cargar casos.</p></div>';
+                    return;
+                }
+                var data = res.data || [];
+                animateCounter(document.getElementById('statDisponibles'), data.length, 500);
+                if (!data.length) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128203;</div><p>No hay casos disponibles en tu área en este momento.</p></div>';
+                    return;
+                }
+                var html = '<div style="overflow-x:auto;"><table class="crm-table"><thead><tr>' +
+                    '<th>ID</th><th>Título</th><th>Persona</th><th>Prioridad</th><th>Estado</th><th>Días</th><th>Acción</th>' +
+                    '</tr></thead><tbody>';
+                data.forEach(function(c) {
+                    var pb = prioridadBadges[c.prioridad] || 'badge-info';
+                    var eb = 'badge-secondary';
+                    var el = casoEstados[c.estado] || c.estado;
+                    var dias = parseInt(c.dias_abierto, 10) || 0;
+                    html += '<tr class="' + (c.prioridad === 'urgente' ? 'row-urgente' : '') + '">' +
+                        '<td><strong>#' + c.id + '</strong></td>' +
+                        '<td>' + esc(c.titulo || 'Sin título') + '</td>' +
+                        '<td>' + esc(c.persona_nombre || '') + '</td>' +
+                        '<td><span class="badge ' + pb + '">' + esc(c.prioridad || 'media') + '</span></td>' +
+                        '<td><span class="badge ' + eb + '">' + esc(el) + '</span></td>' +
+                        '<td class="small">' + dias + '</td>' +
+                        '<td><button class="btn btn-sm btn-success btn-seleccionar-caso" data-id="' + c.id + '">Seleccionar</button></td>' +
+                        '</tr>';
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+                container.querySelectorAll('.btn-seleccionar-caso').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var casoId = parseInt(this.getAttribute('data-id'), 10);
+                        if (!confirm('¿Deseas seleccionar este caso?')) return;
+                        api('POST', basePath + '/api/seleccionar-caso', { caso_id: casoId }, function(err, res) {
+                            if (res && res.success) {
+                                showToast(res.message || 'Caso seleccionado.', 'success');
+                                loadDisponibles();
+                                loadMisCasos();
+                            } else {
+                                showToast(res ? res.error : 'Error al seleccionar caso.', 'error');
+                            }
+                        });
+                    });
+                });
+            });
+        }
+
+        function loadMisCasos() {
+            var container = document.getElementById('misCasos');
+            container.innerHTML = '<div class="text-center" style="padding:2rem;"><div class="spinner" style="margin:0 auto;"></div><p>Cargando...</p></div>';
+            apiGet(basePath + '/api/mis-casos', function(err, res) {
+                if (!res || !res.success) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9888;</div><p>Error al cargar casos.</p></div>';
+                    return;
+                }
+                var data = res.data || [];
+                animateCounter(document.getElementById('statAsignados'), data.length, 500);
+                if (!data.length) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128203;</div><p>No tienes casos asignados aún.</p></div>';
+                    return;
+                }
+                var html = '<div style="overflow-x:auto;"><table class="crm-table"><thead><tr>' +
+                    '<th>ID</th><th>Título</th><th>Persona</th><th>Prioridad</th><th>Estado</th><th>Área</th><th>Asignado</th>' +
+                    '</tr></thead><tbody>';
+                data.forEach(function(c) {
+                    var pb = prioridadBadges[c.prioridad] || 'badge-info';
+                    html += '<tr>' +
+                        '<td><strong>#' + c.caso_id + '</strong></td>' +
+                        '<td>' + esc(c.titulo || 'Sin título') + '</td>' +
+                        '<td>' + esc(c.persona_nombre || '') + '</td>' +
+                        '<td><span class="badge ' + pb + '">' + esc(c.prioridad || 'media') + '</span></td>' +
+                        '<td><span class="badge badge-secondary">' + esc(statusLabels[c.estado] || c.estado) + '</span></td>' +
+                        '<td>' + esc(c.area_nombre || '') + '</td>' +
+                        '<td class="small">' + (c.asignado_at || '') + '</td>' +
+                        '</tr>';
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            });
+        }
+
+        document.getElementById('btnFiltrarDisponibles').addEventListener('click', loadDisponibles);
+        var searchInput = document.getElementById('filterDisponiblesSearch');
+        if (searchInput) {
+            var debounceTimer;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(loadDisponibles, 350);
+            });
+        }
+
+        loadDisponibles();
+        loadMisCasos();
+    })();
+
+    /* ================================================================
+       ADMIN PAGE
+       ================================================================ */
+    (function() {
+        var adminPage = document.querySelector('.admin-page');
+        if (!adminPage) return;
+
+        document.querySelectorAll('.tab-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+                btn.classList.add('active');
+                var tab = document.getElementById('tab-' + btn.getAttribute('data-tab'));
+                if (tab) tab.classList.add('active');
+            });
+        });
+
+        function loadAdminStats() {
+            apiGet(basePath + '/api/admin/estadisticas', function(err, res) {
+                if (res && res.success) {
+                    var d = res.data;
+                    animateCounter(document.getElementById('statUsuarios'), d.total_usuarios || 0, 500);
+                    animateCounter(document.getElementById('statAreasAdmin'), d.total_areas || 0, 500);
+                    animateCounter(document.getElementById('statCasosAdmin'), d.total_casos || 0, 500);
+                    animateCounter(document.getElementById('statAsignaciones'), d.total_asignaciones || 0, 500);
+                }
+            });
+        }
+
+        function loadUsuarios() {
+            var container = document.getElementById('adminUsuariosList');
+            var search = document.getElementById('filterAdminUsuariosSearch').value.trim();
+            var rol = document.getElementById('filterAdminUsuariosRol').value;
+            var params = [];
+            if (search) params.push('q=' + encodeURIComponent(search));
+            if (rol) params.push('rol=' + encodeURIComponent(rol));
+            var url = basePath + '/api/admin/usuarios' + (params.length ? '?' + params.join('&') : '');
+            container.innerHTML = skeletonTable();
+            apiGet(url, function(err, res) {
+                if (!res || !res.success) {
+                    container.innerHTML = '<div class="empty-state"><p>Error al cargar usuarios.</p></div>';
+                    return;
+                }
+                var data = res.data || [];
+                if (!data.length) {
+                    container.innerHTML = '<div class="empty-state"><p>No se encontraron usuarios.</p></div>';
+                    return;
+                }
+                var html = '<div style="overflow-x:auto;"><table class="crm-table"><thead><tr>' +
+                    '<th>ID</th><th>Nombre</th><th>Credencial</th><th>Email</th><th>Rol</th><th>Área</th><th>Estado</th><th>Acciones</th>' +
+                    '</tr></thead><tbody>';
+                data.forEach(function(u) {
+                    var rolBadge = u.rol === 'administrador' ? 'badge-warning' : 'badge-info';
+                    var estadoLabel = u.activo == 1 ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-secondary">Inactivo</span>';
+                    html += '<tr>' +
+                        '<td>' + u.id + '</td>' +
+                        '<td>' + esc(u.nombre || '') + '</td>' +
+                        '<td><strong>' + esc(u.credencial || '-') + '</strong></td>' +
+                        '<td>' + esc(u.email || '-') + '</td>' +
+                        '<td><span class="badge ' + rolBadge + '">' + esc(u.rol || 'usuario') + '</span></td>' +
+                        '<td>' + esc(u.area_nombre || '-') + '</td>' +
+                        '<td>' + estadoLabel + '</td>' +
+                        '<td class="actions">' +
+                        '<button class="btn btn-sm btn-primary btn-edit-usuario" data-id="' + u.id + '">E</button> ' +
+                        '<button class="btn btn-sm btn-danger btn-delete-usuario" data-id="' + u.id + '" data-name="' + esc(u.nombre) + '">X</button>' +
+                        '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+                container.querySelectorAll('.btn-edit-usuario').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var id = parseInt(this.getAttribute('data-id'), 10);
+                        var u = data.find(function(item) { return item.id === id; });
+                        if (!u) return;
+                        document.getElementById('editUsuarioId').value = u.id;
+                        document.getElementById('editUsuarioNombre').value = u.nombre || '';
+                        document.getElementById('editUsuarioEmail').value = u.email || '';
+                        document.getElementById('editUsuarioRol').value = u.rol || 'usuario';
+                        document.getElementById('editUsuarioActivo').value = u.activo != null ? u.activo : 1;
+                        document.getElementById('msgEditUsuario').style.display = 'none';
+                        loadAreaSelect('editUsuarioArea', u.area_id);
+                        document.getElementById('modalEditUsuario').style.display = 'flex';
+                    });
+                });
+
+                container.querySelectorAll('.btn-delete-usuario').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var id = parseInt(this.getAttribute('data-id'), 10);
+                        var name = this.getAttribute('data-name');
+                        if (!confirm('¿Eliminar al usuario "' + name + '"?')) return;
+                        api('POST', basePath + '/api/admin/eliminar-usuario', { id: id }, function(err, res) {
+                            if (res && res.success) {
+                                showToast('Usuario eliminado.', 'success');
+                                loadUsuarios();
+                                loadAdminStats();
+                            } else {
+                                showToast(res ? res.error : 'Error al eliminar.', 'error');
+                            }
+                        });
+                    });
+                });
+            });
+        }
+
+        document.getElementById('formEditUsuario').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var btn = this.querySelector('button[type="submit"]');
+            var msg = document.getElementById('msgEditUsuario');
+            showLoading(btn);
+            msg.style.display = 'none';
+            api('POST', basePath + '/api/admin/actualizar-usuario', {
+                id: parseInt(document.getElementById('editUsuarioId').value, 10),
+                nombre: document.getElementById('editUsuarioNombre').value.trim(),
+                email: document.getElementById('editUsuarioEmail').value.trim(),
+                rol: document.getElementById('editUsuarioRol').value,
+                area_id: parseInt(document.getElementById('editUsuarioArea').value, 10) || null,
+                activo: parseInt(document.getElementById('editUsuarioActivo').value, 10)
+            }, function(err, res) {
+                hideLoading(btn);
+                if (res && res.success) {
+                    showToast('Usuario actualizado.', 'success');
+                    document.getElementById('modalEditUsuario').style.display = 'none';
+                    loadUsuarios();
+                } else {
+                    showFormMsg(msg, res ? res.error : 'Error de conexión.', 'error');
+                }
+            });
+        });
+
+        document.getElementById('modalEditUsuarioClose').addEventListener('click', function() { document.getElementById('modalEditUsuario').style.display = 'none'; });
+        document.getElementById('btnCancelEditUsuario').addEventListener('click', function() { document.getElementById('modalEditUsuario').style.display = 'none'; });
+        document.getElementById('modalEditUsuario').addEventListener('click', function(e) { if (e.target === this) this.style.display = 'none'; });
+
+        /* ── Areas ── */
+        function loadAreas() {
+            var container = document.getElementById('adminAreasList');
+            apiGet(basePath + '/api/admin/areas', function(err, res) {
+                if (!res || !res.success) {
+                    container.innerHTML = '<div class="empty-state"><p>Error al cargar áreas.</p></div>';
+                    return;
+                }
+                var data = res.data || [];
+                if (!data.length) {
+                    container.innerHTML = '<div class="empty-state"><p>No hay áreas registradas.</p></div>';
+                    return;
+                }
+                var html = '<div style="overflow-x:auto;"><table class="crm-table"><thead><tr>' +
+                    '<th>ID</th><th>Nombre</th><th>Descripción</th><th>Estado</th><th>Acciones</th>' +
+                    '</tr></thead><tbody>';
+                data.forEach(function(a) {
+                    var estadoLabel = a.activo == 1 ? '<span class="badge badge-success">Activa</span>' : '<span class="badge badge-secondary">Inactiva</span>';
+                    html += '<tr>' +
+                        '<td>' + a.id + '</td>' +
+                        '<td><strong>' + esc(a.nombre) + '</strong></td>' +
+                        '<td>' + esc(a.descripcion || '-') + '</td>' +
+                        '<td>' + estadoLabel + '</td>' +
+                        '<td class="actions">' +
+                        '<button class="btn btn-sm btn-primary btn-edit-area" data-id="' + a.id + '" data-nombre="' + esc(a.nombre) + '" data-descripcion="' + esc(a.descripcion || '') + '" data-activo="' + a.activo + '">E</button> ' +
+                        '<button class="btn btn-sm btn-danger btn-delete-area" data-id="' + a.id + '" data-nombre="' + esc(a.nombre) + '">X</button>' +
+                        '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+                container.querySelectorAll('.btn-edit-area').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        document.getElementById('editAreaId').value = this.getAttribute('data-id');
+                        document.getElementById('areaNombre').value = this.getAttribute('data-nombre');
+                        document.getElementById('areaDescripcion').value = this.getAttribute('data-descripcion');
+                        document.getElementById('areaFormTitle').textContent = 'Editar Área';
+                        document.getElementById('formCrearArea').style.display = 'block';
+                    });
+                });
+
+                container.querySelectorAll('.btn-delete-area').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var id = parseInt(this.getAttribute('data-id'), 10);
+                        var nombre = this.getAttribute('data-nombre');
+                        if (!confirm('¿Eliminar el área "' + nombre + '"?')) return;
+                        api('POST', basePath + '/api/admin/eliminar-area', { id: id }, function(err, res) {
+                            if (res && res.success) {
+                                showToast('Área eliminada.', 'success');
+                                loadAreas();
+                                loadAdminStats();
+                            } else {
+                                showToast(res ? res.error : 'Error al eliminar.', 'error');
+                            }
+                        });
+                    });
+                });
+            });
+        }
+
+        document.getElementById('btnCrearArea').addEventListener('click', function() {
+            document.getElementById('editAreaId').value = '';
+            document.getElementById('areaNombre').value = '';
+            document.getElementById('areaDescripcion').value = '';
+            document.getElementById('areaFormTitle').textContent = 'Nueva Área';
+            document.getElementById('formCrearArea').style.display = 'block';
+        });
+        document.getElementById('btnCancelarArea').addEventListener('click', function() {
+            document.getElementById('formCrearArea').style.display = 'none';
+        });
+
+        document.getElementById('btnGuardarArea').addEventListener('click', function() {
+            var id = document.getElementById('editAreaId').value;
+            var nombre = document.getElementById('areaNombre').value.trim();
+            var descripcion = document.getElementById('areaDescripcion').value.trim();
+            var msg = document.getElementById('msgArea');
+            if (!nombre) { showFormMsg(msg, 'El nombre es obligatorio.', 'error'); return; }
+
+            var url = id ? '/api/admin/actualizar-area' : '/api/admin/crear-area';
+            var payload = { nombre: nombre, descripcion: descripcion };
+            if (id) payload.id = parseInt(id, 10);
+
+            api('POST', basePath + url, payload, function(err, res) {
+                if (res && res.success) {
+                    showToast(id ? 'Área actualizada.' : 'Área creada.', 'success');
+                    document.getElementById('formCrearArea').style.display = 'none';
+                    loadAreas();
+                    loadAdminStats();
+                } else {
+                    showFormMsg(msg, res ? res.error : 'Error de conexión.', 'error');
+                }
+            });
+        });
+
+        /* ── Crear caso ── */
+        function loadAdminCasosPersonSelect() {
+            var sel = document.getElementById('adminCasoPersona');
+            apiGet(basePath + '/api/obtener-personas', function(err, res) {
+                if (res && res.success) {
+                    sel.innerHTML = '<option value="">Seleccione una persona</option>';
+                    (res.data || []).forEach(function(p) {
+                        var o = document.createElement('option');
+                        o.value = p.id;
+                        o.textContent = (p.nombre || '') + ' - ' + (p.ciudad || p.estado || '');
+                        sel.appendChild(o);
+                    });
+                }
+            });
+        }
+
+        function loadAdminCasosAreaSelect() {
+            var sel = document.getElementById('adminCasoArea');
+            apiGet(basePath + '/api/admin/areas', function(err, res) {
+                if (res && res.success) {
+                    sel.innerHTML = '<option value="">Seleccione un área</option>';
+                    (res.data || []).forEach(function(a) {
+                        var o = document.createElement('option');
+                        o.value = a.id;
+                        o.textContent = a.nombre;
+                        sel.appendChild(o);
+                    });
+                }
+            });
+        }
+
+        document.getElementById('btnCrearCasoAdmin').addEventListener('click', function() {
+            var btn = this;
+            var msg = document.getElementById('msgCrearCaso');
+            showLoading(btn);
+            msg.style.display = 'none';
+            api('POST', basePath + '/api/admin/crear-caso', {
+                person_id: parseInt(document.getElementById('adminCasoPersona').value, 10),
+                area_id: parseInt(document.getElementById('adminCasoArea').value, 10),
+                titulo: document.getElementById('adminCasoTitulo').value.trim(),
+                prioridad: document.getElementById('adminCasoPrioridad').value,
+                descripcion: document.getElementById('adminCasoDescripcion').value.trim()
+            }, function(err, res) {
+                hideLoading(btn);
+                if (res && res.success) {
+                    showToast('Caso creado exitosamente.', 'success');
+                    showFormMsg(msg, 'Caso creado.', 'success');
+                    loadAdminStats();
+                } else {
+                    showFormMsg(msg, res ? res.error : 'Error de conexión.', 'error');
+                }
+            });
+        });
+
+        /* ── Asignaciones ── */
+        function loadAsignaciones() {
+            var container = document.getElementById('adminAsignacionesList');
+            apiGet(basePath + '/api/admin/asignaciones', function(err, res) {
+                if (!res || !res.success) {
+                    container.innerHTML = '<div class="empty-state"><p>Error al cargar asignaciones.</p></div>';
+                    return;
+                }
+                var data = res.data || [];
+                if (!data.length) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128203;</div><p>No hay asignaciones registradas.</p></div>';
+                    return;
+                }
+                var html = '<div style="overflow-x:auto;"><table class="crm-table"><thead><tr>' +
+                    '<th>Caso</th><th>Título</th><th>Usuario</th><th>Credencial</th><th>Área</th><th>Estado</th><th>Asignado</th>' +
+                    '</tr></thead><tbody>';
+                data.forEach(function(a) {
+                    html += '<tr>' +
+                        '<td><strong>#' + a.caso_id + '</strong></td>' +
+                        '<td>' + esc(a.titulo || 'Sin título') + '</td>' +
+                        '<td>' + esc(a.usuario_nombre || '') + '</td>' +
+                        '<td>' + esc(a.credencial || '') + '</td>' +
+                        '<td>' + esc(a.area_nombre || '-') + '</td>' +
+                        '<td><span class="badge badge-info">' + esc(a.estado || 'asignado') + '</span></td>' +
+                        '<td class="small">' + (a.asignado_at || '') + '</td>' +
+                        '</tr>';
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            });
+        }
+
+        document.getElementById('btnFiltrarAdminUsuarios').addEventListener('click', loadUsuarios);
+
+        function loadAreaSelect(selId, selectedId) {
+            var sel = document.getElementById(selId);
+            if (!sel) return;
+            apiGet(basePath + '/api/admin/areas', function(err, res) {
+                if (res && res.success) {
+                    sel.innerHTML = '<option value="">Sin área</option>';
+                    (res.data || []).forEach(function(a) {
+                        var o = document.createElement('option');
+                        o.value = a.id;
+                        o.textContent = a.nombre;
+                        if (selectedId && parseInt(a.id, 10) === parseInt(selectedId, 10)) o.selected = true;
+                        sel.appendChild(o);
+                    });
+                }
+            });
+        }
+
+        loadAdminStats();
+        loadUsuarios();
+        loadAreas();
+        loadAdminCasosPersonSelect();
+        loadAdminCasosAreaSelect();
+        loadAsignaciones();
     })();
 })();
